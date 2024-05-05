@@ -40,19 +40,14 @@ def create_app():
             model=current_app.config["MODEL"],
         )
 
-    @app.route("/", methods=["POST"])
-    def index_post():
-        user_input = request.form.get('chat-message').strip()
+    @app.route("/prompt", methods=["POST"])
+    def prompt():
+        user_input = request.json["prompt"].strip()
         llm_client = get_llm_client()
 
         output = llm_client.get_llm_response(input=user_input)
 
-        return render_template(
-            "index.html",
-            title=current_app.config["APP_NAME"],
-            model=current_app.config["MODEL"],
-            message=output
-        )
+        return jsonify({"output": output})
 
     return app
 
@@ -71,7 +66,7 @@ def get_llm_client():
     if "llm_client" not in g:
         g.llm_client = LlmClient(
             ollama_instance_url=current_app.config["OLLAMA_INSTANCE_URL"],
-            model=current_app.config["MODEL"]
+            model=current_app.config["MODEL"],
         )
 
     return g.llm_client
