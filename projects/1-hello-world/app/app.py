@@ -49,6 +49,16 @@ def create_app():
 
         return jsonify({"output": output})
 
+    @app.route("/prompt-stream", methods=["POST"])
+    def prompt_stream():
+        user_input = request.json["prompt"].strip()
+        llm_client = get_llm_client()
+
+        return Response(
+            llm_client.get_llm_response_stream(input=user_input),
+            mimetype="text/event-stream",
+        )
+
     return app
 
 

@@ -46,15 +46,32 @@
 
     messages[messages.length - 1].output = structuredClone(defaultChatMessage);
 
-    const response = await doRequest("/prompt", requestBody, aborter);
+    const response = await doRequest("/prompt-stream", requestBody, aborter);
 
     if (response?.ok) {
-      const responseData = await response.json();
+      let firstTokenLoadedAlreadyLoaded = false;
+      const reader = response.body.getReader();
 
-      messages[messages.length - 1].output.body = responseData.output;
-      messages[messages.length - 1].output.date = Date.now();
+      while (true) {
+        const { done, value } = await reader.read();
 
-      refreshMessages();
+        if (done) {
+          break;
+        }
+
+        const text = new TextDecoder().decode(value);
+
+        if (firstTokenLoadedAlreadyLoaded) {
+          messages[messages.length - 1].output.body += text;
+        } else {
+          messages[messages.length - 1].output.body = text;
+          messages[messages.length - 1].output.date = Date.now();
+
+          firstTokenLoadedAlreadyLoaded = true;
+        }
+
+        refreshMessages();
+      }
     } else {
       flashToast();
     }
