@@ -1,4 +1,6 @@
 <script lang="ts">
+  import showdown from "showdown";
+
   import LoadingDots from "./LoadingDots.svelte";
 
   export let isLoading = false;
@@ -7,12 +9,20 @@
   export let message;
   export let date;
 
+  const showDownConverter = new showdown.Converter();
+
   let alertCssClass = "alert-primary";
   let messageCssClass = "message--user";
 
   if (!isUserMessage) {
     alertCssClass = "alert-light";
     messageCssClass = "message--app";
+  }
+
+  let processedMessage = "";
+
+  $: if (message) {
+    processedMessage = showDownConverter.makeHtml(message);
   }
 </script>
 
@@ -29,7 +39,7 @@
       {#if isLoading}
         <LoadingDots />
       {:else}
-        {message}
+        {@html processedMessage}
       {/if}
     </p>
   </div>
