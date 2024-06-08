@@ -1,0 +1,27 @@
+services:
+  web:
+    container_name: chat_web
+    build: app
+    command: "python app.py"
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "${APP_PORT_HOST}:${APP_PORT}"
+    volumes:
+      - ./app:/usr/src/app
+      - ./volumes/app/pip:/root/.cache/pip
+      - ./volumes/app/pip3:/usr/local/lib/python3.12/site-packages
+      - ./volumes/app/nltk_data:/root/nltk_data
+    depends_on:
+      ollama:
+        condition: service_started
+
+  ollama:
+    container_name: chat_ollama
+    image: ollama/ollama:0.1.30
+    restart: unless-stopped
+    volumes:
+      - ./volumes/ollama:/root/.ollama
+    ports:
+      - "${OLLAMA_PORT_HOST}:${OLLAMA_PORT}"
