@@ -17,3 +17,8 @@ class Config:
 
     OLLAMA_INSTANCE_URL = os.getenv("OLLAMA_INSTANCE_URL")
     MODEL = os.getenv("MODEL")
+
+    SEARCH_HOSTNAME = os.getenv("OPENSEARCH_HOSTNAME")
+    SEARCH_PORT = os.getenv("OPENSEARCH_REST_API_PORT_HOST")
+    SEARCH_USER = os.getenv("OPENSEARCH_USER")
+    SEARCH_PASSWORD = os.getenv("OPENSEARCH_PASSWORD")

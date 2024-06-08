@@ -1,24 +1,18 @@
-from chromadb import EmbeddingFunction, Embeddings
-
 from langchain.embeddings.infinity import InfinityEmbeddings
 
-# https://github.com/chroma-core/chroma/blob/978547c32d52da81b6991827a4808144fc1166ea/chromadb/utils/embedding_functions.py
 
-
-class EmbeddingFunction(EmbeddingFunction):
+class EmbeddingFunction:
     def __init__(
         self,
         infinity_instance_url: str,
         embedding_model: str = "all-MiniLM-L6-v2",
-        **kwargs,
     ):
         self.embedding_model = embedding_model
-        # self.ef = SentenceTransformerEmbeddings(model_name=self.model)
         self.ef = InfinityEmbeddings(
             model=self.embedding_model, infinity_api_url=infinity_instance_url
         )
 
-    def __call__(self, input) -> Embeddings:
+    def __call__(self, input):
         embeddings = self.ef.embed_query(input)
         return embeddings
 
@@ -42,3 +36,15 @@ class EmbeddingFunction(EmbeddingFunction):
             text = input[dict_key]
 
         return text
+
+    def get_embedding_dimensions(self) -> int:
+        # TODO: don't hardcode / get dynamically?
+        mapping = {"all-MiniLM-L6-v2": 384}
+        placeholder_dimensions = 0
+
+        try:
+            dimensions = mapping[self.embedding_model]
+        except:
+            dimensions = placeholder_dimensions
+
+        return dimensions

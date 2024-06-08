@@ -126,8 +126,12 @@ def get_vector_store():
         embedding_function = get_embedding_function()
 
         g.vector_store = VectorStore(
-            chroma_hostname=current_app.config["CHROMA_HOSTNAME"],
-            chroma_port=current_app.config["CHROMA_PORT"],
+            search_hostname=current_app.config["SEARCH_HOSTNAME"],
+            search_port=current_app.config["SEARCH_PORT"],
+            search_auth=(
+                current_app.config["SEARCH_USER"],
+                current_app.config["SEARCH_PASSWORD"],
+            ),
             content_dir=current_app.config["CONTENT_DIR"],
             embedding_function=embedding_function,
         )

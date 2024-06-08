@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from jinja2 import Template
 from ollama import Client
 
 
@@ -8,15 +11,17 @@ class LlmClient:
         self.ollama_instance_url = ollama_instance_url
         self.model = model
         self.embedding_function = embedding_function
-        self.vector_store = vector_store
-
         self.client = Client(host=ollama_instance_url)
 
-        self.prompt_base = """You are an assistant for question-answering tasks. \
-        Use the following pieces of retrieved context to answer the question. \
-        If you don't know the answer, just say that you don't know. \
-        Use three sentences maximum and keep the answer concise.\
-        """
+        self.vector_store = vector_store
+
+        self.prompt_templates_dir = Path(__file__).parent / "prompts"
+
+        self.prompt_template_string = ""
+        with open(f"{self.prompt_templates_dir}/simple_rag.j2", "r") as file:
+            self.prompt_template_string = file.read()
+
+        self.prompt_template = Template(self.prompt_template_string)
 
     def get_llm_response(self, input: str = ""):
         chat_prompt = self.get_chat_prompt(input)
@@ -41,34 +46,26 @@ class LlmClient:
     def get_chat_prompt(self, input: str):
         context = self.get_relevant_context(input)
 
-        chat_prompt = f"""{self.prompt_base} \
-        Question: {input} \
-        Context: {context}
-        Answer:\
-        """
+        chat_prompt = self.prompt_template.render(
+            {"question": input, "context": context}
+        )
 
         return chat_prompt
 
-    def get_relevant_context(self, input: str, max_number_of_docs: int = 3) -> str:
-        query_response = self.vector_store.query_with_text(
-            text=input, max_number_of_docs=max_number_of_docs
-        )
-        context_documents = query_response["documents"]
+    def get_relevant_context(self, input: str, max_number_of_docs: int = 3):
+        query_response = self.vector_store.query(text=input, size=max_number_of_docs)
+
         context = ""
 
-        if len(context_documents) == 1:
-            if len(context_documents[0]) == 1:
-                context = context_documents[0][0]
-            else:
-                for document in context_documents[0]:
-                    context += "\n\n" + document
-        else:
-            raise
+        if len(query_response) > 0:
+            for document in query_response:
+                for content in document["fields"]["page_content"]:
+                    context += content
 
         return context
 
-    def clean_output(self, chain_output: str) -> str:
+    def clean_output(self, output: str) -> str:
         ending_token = "<|im_end|>"
-        chain_output = chain_output.replace(ending_token, "")
+        output = output.replace(ending_token, "")
 
-        return chain_output
+        return output
