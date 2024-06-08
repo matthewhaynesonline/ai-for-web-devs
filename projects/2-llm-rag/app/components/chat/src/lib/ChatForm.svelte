@@ -9,6 +9,10 @@
   function onSubmit() {
     dispatch("chatFormOnSubmit");
   }
+
+  function onAddDocumentClick() {
+    dispatch("chatFormOnAddDocumentClick");
+  }
 </script>
 
 <form class="card" on:submit|preventDefault={onSubmit}>
@@ -27,8 +31,20 @@
           <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
           Loading...
         </button>
+
+        <button type="button" class="btn btn-outline-secondary" disabled>
+          Add document
+        </button>
       {:else}
         <button type="submit" class="btn btn-success">Send</button>
+
+        <button
+          type="button"
+          class="btn btn-outline-dark"
+          on:click={onAddDocumentClick}
+        >
+          Add document
+        </button>
       {/if}
     </div>
   </div>

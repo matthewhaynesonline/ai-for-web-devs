@@ -2,6 +2,8 @@
 volumes/*
 .env
 
+app/content/*.txt
+
 # https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/

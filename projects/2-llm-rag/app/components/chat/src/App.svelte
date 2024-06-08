@@ -1,6 +1,7 @@
 <script lang="ts">
   import { doRequest, throttle } from "./lib/utils";
 
+  import AddDocumentForm from "./lib/AddDocumentForm.svelte";
   import ChatForm from "./lib/ChatForm.svelte";
   import ChatMessage from "./lib/ChatMessage.svelte";
   import Toast from "./lib/Toast.svelte";
@@ -12,6 +13,8 @@
     author: "🤖 MattGPT",
     date: Date.now(),
   };
+
+  let showAddDocumentForm = false;
 
   const defaultToastMessage = {
     title: "",
@@ -102,6 +105,39 @@
     );
   }
 
+  async function onChatAddDocumentClick() {
+    showAddDocumentForm = true;
+  }
+
+  async function addDocumentFormSubmit(event) {
+    showAddDocumentForm = false;
+    isLoading = true;
+
+    const endpointUrl = "/document";
+    const newDocument = event.detail;
+
+    aborter.abort();
+    aborter = new AbortController();
+
+    let response = await doRequest(endpointUrl, newDocument, aborter);
+
+    if (response?.ok) {
+      flashToast("Success!", "Document added successfully", "success");
+    } else {
+      flashToast();
+    }
+
+    isLoading = false;
+  }
+
+  function onAddDocumentFormClose() {
+    hideAddDocumentForm();
+  }
+
+  function hideAddDocumentForm() {
+    showAddDocumentForm = false;
+  }
+
   async function flashToast(
     title = "There was an error.",
     body = "Please try again later.",
@@ -135,6 +171,13 @@
       bind:body={toastMessage.body}
       bind:state={toastMessage.state}
       on:toastOnClose={onToastClose}
+    />
+  {/if}
+
+  {#if showAddDocumentForm}
+    <AddDocumentForm
+      on:addDocumentFormOnSubmit={addDocumentFormSubmit}
+      on:addDocumentFormOnClose={onAddDocumentFormClose}
     />
   {/if}
 
@@ -176,6 +219,7 @@
         bind:currentPrompt
         bind:isLoading
         on:chatFormOnSubmit={onChatFormSubmit}
+        on:chatFormOnAddDocumentClick={onChatAddDocumentClick}
       />
     </div>
   </div>

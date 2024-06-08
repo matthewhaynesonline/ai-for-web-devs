@@ -35,13 +35,11 @@
       </small>
     </h6>
 
-    <p class="mb-0">
-      {#if isLoading}
-        <LoadingDots />
-      {:else}
-        {@html processedMessage}
-      {/if}
-    </p>
+    {#if isLoading}
+      <LoadingDots />
+    {:else}
+      {@html processedMessage}
+    {/if}
   </div>
 </div>
 
@@ -60,5 +58,10 @@
 
   .message--app {
     float: left;
+  }
+
+  /* https://stackoverflow.com/a/59670838 */
+  .message :global(p) {
+    margin-bottom: 0;
   }
 </style>

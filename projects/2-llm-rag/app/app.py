@@ -5,6 +5,8 @@ from flask import Flask, current_app, g, jsonify, render_template, request, Resp
 from config import Config
 
 from services.llm_client import LlmClient
+from services.embedding_function import EmbeddingFunction
+from services.vector_store import VectorStore
 
 
 def create_app():
@@ -40,6 +42,16 @@ def create_app():
             model=current_app.config["MODEL"],
         )
 
+    @app.route("/document", methods=["POST"])
+    def add_document():
+        title = request.json["title"]
+        body = request.json["body"]
+
+        vector_store = get_vector_store()
+        vector_store.add_document(title, body)
+
+        return jsonify({}), 200
+
     @app.route("/prompt", methods=["POST"])
     def prompt():
         user_input = request.json["prompt"].strip()
@@ -59,6 +71,18 @@ def create_app():
             mimetype="text/event-stream",
         )
 
+    @app.route("/refresh", methods=["GET"])
+    def refresh():
+        vector_store = get_vector_store()
+        vector_store.refresh_collection()
+
+        return render_template(
+            "page.html",
+            title=current_app.config["APP_NAME"],
+            model=current_app.config["MODEL"],
+            message="Index Refreshed",
+        )
+
     return app
 
 
@@ -74,12 +98,41 @@ def app_boot():
 
 def get_llm_client():
     if "llm_client" not in g:
+        embedding_function = get_embedding_function()
+        vector_store = get_vector_store()
+
         g.llm_client = LlmClient(
             ollama_instance_url=current_app.config["OLLAMA_INSTANCE_URL"],
             model=current_app.config["MODEL"],
+            embedding_function=embedding_function,
+            vector_store=vector_store,
         )
 
     return g.llm_client
+
+
+def get_embedding_function():
+    if "embedding_function" not in g:
+        g.embedding_function = EmbeddingFunction(
+            infinity_instance_url=current_app.config["INFINITY_INSTANCE_URL"],
+            embedding_model=current_app.config["EMBEDDING_MODEL"],
+        )
+
+    return g.embedding_function
+
+
+def get_vector_store():
+    if "vector_store" not in g:
+        embedding_function = get_embedding_function()
+
+        g.vector_store = VectorStore(
+            chroma_hostname=current_app.config["CHROMA_HOSTNAME"],
+            chroma_port=current_app.config["CHROMA_PORT"],
+            content_dir=current_app.config["CONTENT_DIR"],
+            embedding_function=embedding_function,
+        )
+
+    return g.vector_store
 
 
 if __name__ == "__main__":

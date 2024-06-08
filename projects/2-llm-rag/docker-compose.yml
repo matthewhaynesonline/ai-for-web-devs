@@ -14,8 +14,39 @@ services:
       - ./volumes/app/pip3:/usr/local/lib/python3.12/site-packages
       - ./volumes/app/nltk_data:/root/nltk_data
     depends_on:
+      chroma:
+        condition: service_started
+      infinity:
+        condition: service_healthy
       ollama:
         condition: service_started
+
+  chroma:
+    container_name: chat_chroma
+    image: chromadb/chroma:0.4.25.dev104
+    restart: unless-stopped
+    volumes:
+      - ./volumes/chroma:/chroma/chroma
+    environment:
+      - ALLOW_RESET=TRUE
+    ports:
+      - "${CHROMA_PORT}:${CHROMA_PORT}"
+
+  infinity:
+    container_name: chat_infinity
+    build:
+      context: app_infinity
+      args:
+        MODEL: "${EMBEDDING_MODEL}"
+        PORT: "${INFINITY_PORT}"
+    restart: unless-stopped
+    ports:
+      - "${INFINITY_PORT}:${INFINITY_PORT}"
+    healthcheck:
+      test: "curl -f localhost:${INFINITY_PORT} || exit 1"
+      interval: 60s
+      retries: 5
+      timeout: 10s
 
   ollama:
     container_name: chat_ollama
