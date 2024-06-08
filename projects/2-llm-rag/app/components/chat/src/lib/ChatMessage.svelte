@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { createEventDispatcher } from "svelte";
   import showdown from "showdown";
 
+  import ChatMessageSources from "./ChatMessageSources.svelte";
   import LoadingDots from "./LoadingDots.svelte";
 
   export let isLoading = false;
@@ -9,6 +11,7 @@
   export let message;
   export let date;
 
+  const dispatch = createEventDispatcher();
   const showDownConverter = new showdown.Converter();
 
   let alertCssClass = "alert-primary";
@@ -20,9 +23,21 @@
   }
 
   let processedMessage = "";
+  let sources = [];
 
   $: if (message) {
+    const [rawMessage, rawSources] = message.split("SOURCES:");
+
+    message = rawMessage.replace("Response:", "");
     processedMessage = showDownConverter.makeHtml(message);
+
+    if (rawSources) {
+      sources = rawSources.split(",");
+    }
+  }
+
+  function onSourceClick(event) {
+    dispatch("chatMessageOnSourceClick", event.detail);
   }
 </script>
 
@@ -39,6 +54,15 @@
       <LoadingDots />
     {:else}
       {@html processedMessage}
+    {/if}
+
+    {#if sources?.length}
+      <div class="mt-3">
+        <ChatMessageSources
+          {sources}
+          on:chatMessageSourcesOnSourceClick={onSourceClick}
+        />
+      </div>
     {/if}
   </div>
 </div>

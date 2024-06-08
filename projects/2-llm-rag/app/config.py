@@ -9,9 +9,6 @@ class Config:
     DEBUG = os.getenv("APP_DEBUG", "False").lower() in ("true", "1", "t")
     CONTENT_DIR = os.path.dirname(__file__) + "/content"
 
-    CHROMA_HOSTNAME = os.getenv("CHROMA_HOSTNAME")
-    CHROMA_PORT = os.getenv("CHROMA_PORT")
-
     INFINITY_INSTANCE_URL = os.getenv("INFINITY_INSTANCE_URL")
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
 

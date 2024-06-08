@@ -52,6 +52,13 @@ def create_app():
 
         return jsonify({}), 200
 
+    @app.route("/document/find/<query>", methods=["GET"])
+    def find_document(query: str):
+        vector_store = get_vector_store()
+        result = vector_store.find_document(query)
+
+        return jsonify(result), 200
+
     @app.route("/prompt", methods=["POST"])
     def prompt():
         user_input = request.json["prompt"].strip()
@@ -74,7 +81,7 @@ def create_app():
     @app.route("/refresh", methods=["GET"])
     def refresh():
         vector_store = get_vector_store()
-        vector_store.refresh_collection()
+        vector_store.refresh_index()
 
         return render_template(
             "page.html",

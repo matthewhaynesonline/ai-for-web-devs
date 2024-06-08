@@ -1,13 +1,8 @@
 import uuid
 
-from langchain_community.document_loaders import DirectoryLoader
-from langchain_community.document_loaders import TextLoader
-
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 from opensearchpy import OpenSearch
 
-from services.fs_utils import save_document_to_disk
+from services.data_loader import DataLoader
 
 
 class VectorStore:
@@ -20,12 +15,8 @@ class VectorStore:
         embedding_function,
     ):
         self.content_dir = content_dir
+        self.data_loader = DataLoader(content_dir)
         self.embedding_function = embedding_function
-
-        self.directory_loader = DirectoryLoader(self.content_dir, glob="**/*.txt")
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=2
-        )
 
         self.search_client = OpenSearch(
             hosts=[{"host": search_hostname, "port": search_port}],
@@ -34,7 +25,7 @@ class VectorStore:
             verify_certs=False,
         )
 
-        self.index_name = "chat_documents"
+        self.index_name = "app_documents"
         self.index_settings = {
             "settings": {"index": {"number_of_shards": 4}, "index.knn": True},
             "mappings": {
@@ -116,8 +107,7 @@ class VectorStore:
     # Loader
     ########
     def load_documents_from_disk_into_index(self):
-        documents = self.directory_loader.load()
-        documents = self.text_splitter.split_documents(documents)
+        documents = self.data_loader.load_documents_from_disk()
         self.load_documents_into_index(documents)
 
     def load_documents_into_index(self, documents):
@@ -135,16 +125,11 @@ class VectorStore:
             )
 
     def add_document(self, title: str, body: str):
-        document_file_path = save_document_to_disk(
-            directory_path=self.content_dir, title=title, body=body
-        )
+        document_file_path = self.data_loader.save_document_to_disk(title, body)
         self.load_document_into_index(document_file_path)
 
     def load_document_into_index(self, document_file_path: str):
-        text_loader = TextLoader(document_file_path)
-        document = text_loader.load()
-        documents = self.text_splitter.split_documents(document)
-
+        documents = self.data_loader.load_document_from_disk(document_file_path)
         self.load_documents_into_index(documents)
 
     ########
@@ -212,3 +197,20 @@ class VectorStore:
         results = results["hits"]["hits"]
 
         return results
+
+    def find_document(self, query: str):
+        search_query = self.default_search_query_body.copy()
+        search_query["size"] = 1
+        # TODO: don't use wildcard, use tokenizer
+        search_query["query"] = {"wildcard": {"metadata.source": f"*{query}*"}}
+
+        results = self.search_client.search(index=self.index_name, body=search_query)
+        result = {}
+
+        if results["hits"]["hits"]:
+            result = {
+                "source": results["hits"]["hits"][0]["fields"]["metadata.source"][0],
+                "page_content": results["hits"]["hits"][0]["fields"]["page_content"][0],
+            }
+
+        return result

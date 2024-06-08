@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { doRequest, throttle } from "./lib/utils";
+  import {
+    doRequest,
+    getFileNameWithoutExtensionAndTimeStamp,
+    throttle,
+  } from "./lib/utils";
 
   import AddDocumentForm from "./lib/AddDocumentForm.svelte";
   import ChatForm from "./lib/ChatForm.svelte";
   import ChatMessage from "./lib/ChatMessage.svelte";
+  import MessageSourceModal from "./lib/MessageSourceModal.svelte";
   import Toast from "./lib/Toast.svelte";
 
   let aborter = new AbortController();
@@ -23,6 +28,15 @@
   };
 
   let toastMessage = structuredClone(defaultToastMessage);
+
+  let showMessageSourceModal = false;
+
+  let defaultSource = {
+    source: "",
+    page_content: "",
+  };
+
+  let currentSource = structuredClone(defaultSource);
 
   let isLoading = false;
   let showToast = false;
@@ -162,6 +176,46 @@
   function onToastClose() {
     hideToast();
   }
+
+  async function onSourceClick(event) {
+    isLoading = true;
+
+    let sourceName = getFileNameWithoutExtensionAndTimeStamp(event.detail).trim();
+
+    currentSource = await getSource(sourceName);
+    showMessageSourceModal = true;
+
+    isLoading = false;
+  }
+
+  async function getSource(sourceName: string) {
+    let source = null;
+
+    const endpointUrl = "/document/find";
+
+    aborter.abort();
+    aborter = new AbortController();
+
+    let response = await doRequest(`${endpointUrl}/${sourceName}`, {}, aborter, "GET");
+
+    if (response?.ok) {
+      source = await response.json();
+    }
+
+    return source;
+  }
+
+  function onMessageSourceModalClose() {
+    hideMessageSourceModal();
+  }
+
+  function resetCurrenSource() {
+    currentSource = structuredClone(defaultSource);
+  }
+
+  function hideMessageSourceModal() {
+    showMessageSourceModal = false;
+  }
 </script>
 
 <main class="pb-5">
@@ -178,6 +232,14 @@
     <AddDocumentForm
       on:addDocumentFormOnSubmit={addDocumentFormSubmit}
       on:addDocumentFormOnClose={onAddDocumentFormClose}
+    />
+  {/if}
+
+  {#if showMessageSourceModal}
+    <MessageSourceModal
+      title={currentSource.source}
+      body={currentSource.page_content}
+      on:messageSourceModalOnClose={onMessageSourceModalClose}
     />
   {/if}
 
@@ -199,6 +261,7 @@
             author={message.output.author}
             message={message.output.body}
             date={message.output.date}
+            on:chatMessageOnSourceClick={onSourceClick}
           />
         {:else}
           <ChatMessage
@@ -207,6 +270,7 @@
             message={message.output.body}
             date={message.output.date}
             isLoading={true}
+            on:chatMessageOnSourceClick={onSourceClick}
           />
         {/if}
       </li>

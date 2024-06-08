@@ -38,4 +38,16 @@ function throttle(func, limit: number) {
   };
 }
 
-export { doRequest, throttle };
+function getFileNameWithoutExtensionAndTimeStamp(filename: string): string {
+  let newFileName = filename
+    .split(".")
+    .slice(0, -1)
+    .join(".")
+    .split("-")[0]
+    .split("/")
+    .slice(-1)[0];
+
+  return newFileName;
+}
+
+export { doRequest, getFileNameWithoutExtensionAndTimeStamp, throttle };
