@@ -10,12 +10,12 @@
 
 _https://ollama.com/library_
 
-- `docker exec -it mmcg_chat_ollama ollama run {MODEL NAME}`
-- `docker exec -it mmcg_chat_ollama ollama run tinydolphin`
+- `docker exec -it chat_ollama ollama run {MODEL NAME}`
+- `docker exec -it chat_ollama ollama run tinydolphin`
 
 ## Svelte
 
-- `cd components/mmcg_chat`
+- `cd components/chat`
 - `npm i`
 
 ### Link build output to Flask static
@@ -26,7 +26,7 @@ _https://ollama.com/library_
   - `cd app/static`
   - `mkdir components`
   - `cd components`
-  - `ln -s ./../../components/mmcg_chat/dist/assets ./mmcg_chat`
+  - `ln -s ./../../components/chat/dist/assets ./chat`
 
 ## Start the stack
 
