@@ -23,11 +23,11 @@ services:
 
   infinity:
     container_name: chat_infinity
-    build:
-      context: app_infinity
-      args:
-        MODEL: "${EMBEDDING_MODEL}"
-        PORT: "${INFINITY_PORT}"
+    image: michaelf34/infinity:0.0.48
+    environment:
+      - INFINITY_MODEL_ID=${EMBEDDING_MODEL_FULLNAME}
+      - INFINITY_PORT=${INFINITY_PORT}
+    command: "v2"
     restart: unless-stopped
     ports:
       - "${INFINITY_PORT}:${INFINITY_PORT}"
