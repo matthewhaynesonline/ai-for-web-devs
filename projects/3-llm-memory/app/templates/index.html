@@ -1,19 +1,11 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} {% block title %}{{ title }}{% endblock %} {% block head %}
+{{ super() }} {% endblock %} {% block content %}
 
-{% block title %}{{ title }}{% endblock %}
-
-{% block head %}
-{{ super() }}
-{% endblock %}
-
-{% block content %}
 {% if message %}
 <div class="alert alert-light" role="alert">
-  <p>
-    {{ message }}
-  </p>
+  <p>{{ message }}</p>
 </div>
 {% endif %}
 
-<div id="app"></div>
+<div id="app" data-chat="{{chat_json}}"></div>
 {% endblock %}

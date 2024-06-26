@@ -1,10 +1,22 @@
-# Hello World
+# AI for Web Devs 3: Custom Offline LLM Chat Memory
 
 ## First time setup
 
 ### Project
 
 - `cp .env.example .env`
+
+#### DB / SQLAlchemy
+
+```sh
+docker exec -it chat_web flask db init
+docker exec -it chat_web flask db migrate -m "Initial migration"
+docker exec -it chat_web flask db upgrade
+docker exec -it chat_web flask db_seed
+
+# One liner wipe and reset DB
+docker exec -it chat_db psql -U app -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"; rm -rf app/migrations; docker exec -it chat_web flask db init; docker exec -it chat_web flask db migrate -m "Initial migration"; docker exec -it chat_web flask db upgrade; docker exec -it chat_web flask db_seed
+```
 
 ### Ollama
 
@@ -31,3 +43,5 @@ _https://ollama.com/library_
 ## Start the stack
 
 - `docker compose up --build`
+
+## Resources

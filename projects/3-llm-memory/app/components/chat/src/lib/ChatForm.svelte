@@ -23,6 +23,8 @@
         class="form-control"
         placeholder="Enter a prompt, such as 'What is a cpu?'"
         required
+        autofocus
+        disabled={isLoading}
         bind:value={currentPrompt}
       />
 

@@ -45,9 +45,11 @@
   <div class="alert {alertCssClass} message {messageCssClass}">
     <h6 class="alert-heading">
       {author}
-      <small class="text-body-secondary float-end">
-        {new Date(date).toLocaleTimeString()}
-      </small>
+      {#if date}
+        <small class="text-body-secondary float-end">
+          {new Date(date).toLocaleTimeString()}
+        </small>
+      {/if}
     </h6>
 
     {#if isLoading}

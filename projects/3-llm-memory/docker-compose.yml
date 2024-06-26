@@ -14,12 +14,32 @@ services:
       - ./volumes/app/pip3:/usr/local/lib/python3.12/site-packages
       - ./volumes/app/nltk_data:/root/nltk_data
     depends_on:
+      db:
+        condition: service_healthy
       infinity:
         condition: service_healthy
       opensearch-node1:
         condition: service_started
-      ollama:
-        condition: service_started
+      # ollama:
+      #   condition: service_started
+
+  db:
+    container_name: chat_db
+    image: postgres:16.2-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - ./volumes/postgres/data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT_HOST}:${DB_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 15s
+      retries: 5
+      timeout: 10s
 
   infinity:
     container_name: chat_infinity
@@ -37,14 +57,14 @@ services:
       retries: 5
       timeout: 10s
 
-  ollama:
-    container_name: chat_ollama
-    image: ollama/ollama:0.1.42
-    restart: unless-stopped
-    volumes:
-      - ./volumes/ollama:/root/.ollama
-    ports:
-      - "${OLLAMA_PORT_HOST}:${OLLAMA_PORT}"
+  # ollama:
+  #   container_name: chat_ollama
+  #   image: ollama/ollama:0.1.42
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./volumes/ollama:/root/.ollama
+  #   ports:
+  #     - "${OLLAMA_PORT_HOST}:${OLLAMA_PORT}"
 
   opensearch-node1:
     container_name: chat_opensearch_opensearch_node1

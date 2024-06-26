@@ -1,8 +1,12 @@
 import uuid
+from typing import Dict, List
+
+from langchain_core.documents import Document
 
 from opensearchpy import OpenSearch
 
 from services.data_loader import DataLoader
+from services.embedding_function import EmbeddingFunction
 
 
 class VectorStore:
@@ -12,7 +16,7 @@ class VectorStore:
         search_port: str,
         search_auth: tuple,
         content_dir: str,
-        embedding_function,
+        embedding_function: EmbeddingFunction,
     ):
         self.content_dir = content_dir
         self.data_loader = DataLoader(content_dir)
@@ -66,13 +70,13 @@ class VectorStore:
     ########
     # Setup
     ########
-    def ensure_index_exists(self):
+    def ensure_index_exists(self) -> None:
         try:
             self.search_client.indices.get(self.index_name)
         except:
             self.refresh_index()
 
-    def refresh_index(self):
+    def refresh_index(self) -> None:
         try:
             self.search_client.indices.delete(self.index_name)
         except:
@@ -81,7 +85,7 @@ class VectorStore:
         self.search_client.indices.create(self.index_name, body=self.index_settings)
         self.load_documents_from_disk_into_index()
 
-    def ensure_search_pipeline_exists(self):
+    def ensure_search_pipeline_exists(self) -> None:
         # TODO: redo when https://github.com/opensearch-project/opensearch-py/issues/474 lands
         try:
             self.search_client.http.get(
@@ -90,7 +94,7 @@ class VectorStore:
         except:
             self.refresh_search_pipeline()
 
-    def refresh_search_pipeline(self):
+    def refresh_search_pipeline(self) -> None:
         try:
             self.search_client.http.delete(
                 f"/_search/pipeline/{self.search_pipeline_name}"
@@ -106,11 +110,11 @@ class VectorStore:
     ########
     # Loader
     ########
-    def load_documents_from_disk_into_index(self):
+    def load_documents_from_disk_into_index(self) -> None:
         documents = self.data_loader.load_documents_from_disk()
         self.load_documents_into_index(documents)
 
-    def load_documents_into_index(self, documents):
+    def load_documents_into_index(self, documents: List[Document]) -> None:
         for document in documents:
             # Todo: use bulk upload
             search_body = document.dict()
@@ -124,21 +128,21 @@ class VectorStore:
                 refresh=True,
             )
 
-    def add_document(self, title: str, body: str):
+    def add_document(self, title: str, body: str) -> None:
         document_file_path = self.data_loader.save_document_to_disk(title, body)
         self.load_document_into_index(document_file_path)
 
-    def load_document_into_index(self, document_file_path: str):
+    def load_document_into_index(self, document_file_path: str) -> None:
         documents = self.data_loader.load_document_from_disk(document_file_path)
         self.load_documents_into_index(documents)
 
     ########
     # Search
     ########
-    def query(self, text: str, size: int = 3):
+    def query(self, text: str, size: int = 3) -> List:
         return self.hybrid_query(text=text, size=size)
 
-    def hybrid_query(self, text: str, size: int = 3):
+    def hybrid_query(self, text: str, size: int = 3) -> List:
         query_embeddings = self.embedding_function.embed_query(text)
 
         params = {"search_pipeline": self.search_pipeline_name}
@@ -169,7 +173,7 @@ class VectorStore:
 
         return results
 
-    def keyword_query(self, text: str, size: int = 3):
+    def keyword_query(self, text: str, size: int = 3) -> List:
         search_query = self.default_search_query_body.copy()
         search_query["size"] = size
         search_query["query"] = {"match": {"page_content": {"query": text}}}
@@ -179,7 +183,7 @@ class VectorStore:
 
         return results
 
-    def vector_query(self, text: str, size: int = 3):
+    def vector_query(self, text: str, size: int = 3) -> List:
         query_embeddings = self.embedding_function.embed_query(text)
 
         search_query = self.default_search_query_body.copy()
@@ -198,7 +202,7 @@ class VectorStore:
 
         return results
 
-    def find_document(self, query: str):
+    def find_document(self, query: str) -> Dict:
         search_query = self.default_search_query_body.copy()
         search_query["size"] = 1
         # TODO: don't use wildcard, use tokenizer

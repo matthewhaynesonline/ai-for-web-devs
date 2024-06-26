@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+
   import {
     doRequest,
     getFileNameWithoutExtensionAndTimeStamp,
@@ -11,12 +13,16 @@
   import MessageSourceModal from "./lib/MessageSourceModal.svelte";
   import Toast from "./lib/Toast.svelte";
 
+  export let initialChatState = {};
+
   let aborter = new AbortController();
 
+  const userAuthor = "You";
   const defaultChatMessage = {
     body: "",
     author: "🤖 MattGPT",
-    date: Date.now(),
+    date: null,
+    isUserMessage: false,
   };
 
   let showAddDocumentForm = false;
@@ -43,6 +49,27 @@
   let currentPrompt = "";
   let messages = [];
 
+  onMount(() => {
+    setChatMessageFromInitialState();
+  });
+
+  function setChatMessageFromInitialState() {
+    initialChatState?.chat_messages.forEach((message) => {
+      let newMessage = structuredClone(defaultChatMessage);
+      newMessage.body = message.body;
+      newMessage.date = new Date(message.created_at);
+
+      if (message.role === "user") {
+        newMessage.author = userAuthor;
+        newMessage.isUserMessage = true;
+      }
+
+      messages.push(newMessage);
+    });
+
+    refreshMessages();
+  }
+
   async function onChatFormSubmit(event) {
     isLoading = true;
 
@@ -50,7 +77,10 @@
     aborter = new AbortController();
 
     messages.push({
-      prompt: { body: currentPrompt, author: "You", date: Date.now() },
+      body: currentPrompt,
+      author: userAuthor,
+      date: Date.now(),
+      isUserMessage: true,
     });
 
     const requestBody = {
@@ -61,7 +91,7 @@
 
     refreshMessages();
 
-    messages[messages.length - 1].output = structuredClone(defaultChatMessage);
+    messages.push(structuredClone(defaultChatMessage));
 
     const response = await doRequest("/prompt-stream", requestBody, aborter);
 
@@ -79,10 +109,10 @@
         const text = new TextDecoder().decode(value);
 
         if (firstTokenLoadedAlreadyLoaded) {
-          messages[messages.length - 1].output.body += text;
+          messages[messages.length - 1].body += text;
         } else {
-          messages[messages.length - 1].output.body = text;
-          messages[messages.length - 1].output.date = Date.now();
+          messages[messages.length - 1].body = text;
+          messages[messages.length - 1].date = Date.now();
 
           firstTokenLoadedAlreadyLoaded = true;
         }
@@ -216,6 +246,19 @@
   function hideMessageSourceModal() {
     showMessageSourceModal = false;
   }
+
+  async function onClearChat(event) {
+    if (!window.confirm("Are you sure you want to clear the chat?")) {
+      return;
+    }
+
+    const endpointUrl = `/chats/${initialChatState.id}/chat-messages`;
+    await doRequest(endpointUrl, {}, aborter, "DELETE");
+
+    flashToast("Success!", "Chat cleared!", "danger");
+    messages = [];
+    refreshMessages();
+  }
 </script>
 
 <main class="pb-5">
@@ -243,32 +286,43 @@
     />
   {/if}
 
+  <div class="border-bottom border-dark-subtle mb-4 pb-3">
+    <h5 class="d-inline-block mr-2">
+      {initialChatState.title}
+    </h5>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-danger float-end"
+      on:click={onClearChat}
+    >
+      Clear Chat
+    </button>
+  </div>
+
   <ul class="list-unstyled">
     {#each messages as message, i}
       <li>
-        {#if message.prompt}
+        {#if message.isUserMessage}
           <ChatMessage
-            isUserMessage={true}
-            author={message.prompt.author}
-            message={message.prompt.body}
-            date={message.prompt.date}
+            isUserMessage={message.isUserMessage}
+            author={message.author}
+            message={message.body}
+            date={message.date}
           />
-        {/if}
-
-        {#if message.output.body}
+        {:else if message.body}
           <ChatMessage
-            isUserMessage={false}
-            author={message.output.author}
-            message={message.output.body}
-            date={message.output.date}
+            isUserMessage={message.isUserMessage}
+            author={message.author}
+            message={message.body}
+            date={message.date}
             on:chatMessageOnSourceClick={onSourceClick}
           />
         {:else}
           <ChatMessage
             isUserMessage={false}
-            author={message.output.author}
-            message={message.output.body}
-            date={message.output.date}
+            author={message.author}
+            message={message.body}
+            date={message.date}
             isLoading={true}
             on:chatMessageOnSourceClick={onSourceClick}
           />
