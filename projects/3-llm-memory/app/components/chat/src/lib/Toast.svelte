@@ -7,7 +7,7 @@
 
   const dispatch = createEventDispatcher();
 
-  function onClose() {
+  function onClose(): void {
     dispatch("toastOnClose");
   }
 </script>

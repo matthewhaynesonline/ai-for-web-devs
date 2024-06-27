@@ -1,4 +1,9 @@
-async function doRequest(url: string, body, aborter, method: string = "POST") {
+async function doRequest(
+  url: string,
+  body,
+  aborter,
+  method: string = "POST"
+): Promise<Response | null> {
   let response = null;
 
   try {
@@ -23,6 +28,33 @@ async function doRequest(url: string, body, aborter, method: string = "POST") {
   return response;
 }
 
+function getFileNameWithoutExtensionAndTimeStamp(filename: string): string {
+  let newFileName = filename
+    .split(".")
+    .slice(0, -1)
+    .join(".")
+    .split("-")[0]
+    .split("/")
+    .slice(-1)[0];
+
+  return newFileName;
+}
+
+function scrollToBottom(): void {
+  const throttleMs = 200;
+  const timeoutMs = 10;
+
+  throttle(
+    setTimeout(function () {
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
+    }, timeoutMs),
+    throttleMs
+  );
+}
+
 function throttle(func, limit: number) {
   let inThrottle: boolean;
 
@@ -38,16 +70,4 @@ function throttle(func, limit: number) {
   };
 }
 
-function getFileNameWithoutExtensionAndTimeStamp(filename: string): string {
-  let newFileName = filename
-    .split(".")
-    .slice(0, -1)
-    .join(".")
-    .split("-")[0]
-    .split("/")
-    .slice(-1)[0];
-
-  return newFileName;
-}
-
-export { doRequest, getFileNameWithoutExtensionAndTimeStamp, throttle };
+export { doRequest, getFileNameWithoutExtensionAndTimeStamp, scrollToBottom, throttle };

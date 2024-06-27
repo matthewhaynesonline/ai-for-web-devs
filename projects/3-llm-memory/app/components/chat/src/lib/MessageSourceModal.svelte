@@ -6,7 +6,7 @@
 
   const dispatch = createEventDispatcher();
 
-  function onClose() {
+  function onClose(): void {
     dispatch("messageSourceModalOnClose");
   }
 </script>

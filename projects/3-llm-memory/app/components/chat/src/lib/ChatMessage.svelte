@@ -36,7 +36,7 @@
     }
   }
 
-  function onSourceClick(event) {
+  function onSourceClick(event: Event): void {
     dispatch("chatMessageOnSourceClick", event.detail);
   }
 </script>

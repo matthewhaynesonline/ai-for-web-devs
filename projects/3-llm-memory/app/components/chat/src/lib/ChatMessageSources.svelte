@@ -5,7 +5,7 @@
 
   const dispatch = createEventDispatcher();
 
-  function onSourceClick(sourceName: string) {
+  function onSourceClick(sourceName: string): void {
     dispatch("chatMessageSourcesOnSourceClick", sourceName);
   }
 </script>

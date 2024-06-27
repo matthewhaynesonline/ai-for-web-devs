@@ -4,7 +4,7 @@
   import {
     doRequest,
     getFileNameWithoutExtensionAndTimeStamp,
-    throttle,
+    scrollToBottom,
   } from "./lib/utils";
 
   import AddDocumentForm from "./lib/AddDocumentForm.svelte";
@@ -17,6 +17,17 @@
 
   let aborter = new AbortController();
 
+  let isLoading = false;
+  let showAddDocumentForm = false;
+  let showMessageSourceModal = false;
+  let showToast = false;
+
+  const defaultPrompt = "";
+  const defaultMessages: Array<object> = [];
+
+  let currentPrompt = defaultPrompt;
+  let messages = structuredClone(defaultMessages);
+
   const userAuthor = "You";
   const defaultChatMessage = {
     body: "",
@@ -24,8 +35,6 @@
     date: null,
     isUserMessage: false,
   };
-
-  let showAddDocumentForm = false;
 
   const defaultToastMessage = {
     title: "",
@@ -35,8 +44,6 @@
 
   let toastMessage = structuredClone(defaultToastMessage);
 
-  let showMessageSourceModal = false;
-
   let defaultSource = {
     source: "",
     page_content: "",
@@ -44,16 +51,11 @@
 
   let currentSource = structuredClone(defaultSource);
 
-  let isLoading = false;
-  let showToast = false;
-  let currentPrompt = "";
-  let messages = [];
-
   onMount(() => {
     setChatMessageFromInitialState();
   });
 
-  function setChatMessageFromInitialState() {
+  function setChatMessageFromInitialState(): void {
     initialChatState?.chat_messages.forEach((message) => {
       let newMessage = structuredClone(defaultChatMessage);
       newMessage.body = message.body;
@@ -70,7 +72,52 @@
     refreshMessages();
   }
 
-  async function onChatFormSubmit(event) {
+  function refreshMessages(): void {
+    // force svelte re-render
+    // https://svelte.dev/tutorial/updating-arrays-and-objects
+    messages = messages;
+
+    scrollToBottom();
+  }
+
+  async function onClearChat(event: Event): Promise<void> {
+    if (!window.confirm("Are you sure you want to clear the chat?")) {
+      return;
+    }
+
+    const endpointUrl = `/chats/${initialChatState.id}/chat-messages`;
+    await doRequest(endpointUrl, {}, aborter, "DELETE");
+
+    flashToast("Success!", "Chat cleared!", "danger");
+
+    currentPrompt = defaultPrompt;
+    messages = structuredClone(defaultMessages);
+
+    refreshMessages();
+  }
+
+  async function flashToast(
+    title = "There was an error.",
+    body = "Please try again later.",
+    state = "danger",
+  ): Promise<void> {
+    toastMessage.title = title;
+    toastMessage.body = body;
+    toastMessage.state = state;
+
+    showToast = true;
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    showToast = false;
+  }
+
+  function onToastClose(): void {
+    showToast = false;
+    toastMessage = structuredClone(defaultToastMessage);
+  }
+
+  async function onChatFormSubmit(event: Event): Promise<void> {
     isLoading = true;
 
     aborter.abort();
@@ -87,7 +134,7 @@
       prompt: currentPrompt,
     };
 
-    currentPrompt = "";
+    currentPrompt = defaultPrompt;
 
     refreshMessages();
 
@@ -126,34 +173,11 @@
     isLoading = false;
   }
 
-  function refreshMessages() {
-    // force svelte re-render
-    // https://svelte.dev/tutorial/updating-arrays-and-objects
-    messages = messages;
-
-    scrollToBottom();
-  }
-
-  function scrollToBottom() {
-    const throttleMs = 200;
-    const timeoutMs = 10;
-
-    throttle(
-      setTimeout(function () {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: "smooth",
-        });
-      }, timeoutMs),
-      throttleMs,
-    );
-  }
-
-  async function onChatAddDocumentClick() {
+  function onChatAddDocumentClick(): void {
     showAddDocumentForm = true;
   }
 
-  async function addDocumentFormSubmit(event) {
+  async function addDocumentFormSubmit(event: Event): Promise<void> {
     showAddDocumentForm = false;
     isLoading = true;
 
@@ -174,40 +198,11 @@
     isLoading = false;
   }
 
-  function onAddDocumentFormClose() {
-    hideAddDocumentForm();
-  }
-
-  function hideAddDocumentForm() {
+  function onAddDocumentFormClose(): void {
     showAddDocumentForm = false;
   }
 
-  async function flashToast(
-    title = "There was an error.",
-    body = "Please try again later.",
-    state = "danger",
-  ) {
-    toastMessage.title = title;
-    toastMessage.body = body;
-    toastMessage.state = state;
-
-    showToast = true;
-
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    showToast = false;
-  }
-
-  function hideToast() {
-    showToast = false;
-    toastMessage = structuredClone(defaultToastMessage);
-  }
-
-  function onToastClose() {
-    hideToast();
-  }
-
-  async function onSourceClick(event) {
+  async function onSourceClick(event: Event): Promise<void> {
     isLoading = true;
 
     let sourceName = getFileNameWithoutExtensionAndTimeStamp(event.detail).trim();
@@ -218,7 +213,7 @@
     isLoading = false;
   }
 
-  async function getSource(sourceName: string) {
+  async function getSource(sourceName: string): Promise<object> {
     let source = null;
 
     const endpointUrl = "/document/find";
@@ -235,29 +230,9 @@
     return source;
   }
 
-  function onMessageSourceModalClose() {
-    hideMessageSourceModal();
-  }
-
-  function resetCurrenSource() {
-    currentSource = structuredClone(defaultSource);
-  }
-
-  function hideMessageSourceModal() {
+  function onMessageSourceModalClose(): void {
     showMessageSourceModal = false;
-  }
-
-  async function onClearChat(event) {
-    if (!window.confirm("Are you sure you want to clear the chat?")) {
-      return;
-    }
-
-    const endpointUrl = `/chats/${initialChatState.id}/chat-messages`;
-    await doRequest(endpointUrl, {}, aborter, "DELETE");
-
-    flashToast("Success!", "Chat cleared!", "danger");
-    messages = [];
-    refreshMessages();
+    currentSource = structuredClone(defaultSource);
   }
 </script>
 

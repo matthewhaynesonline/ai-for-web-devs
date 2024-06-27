@@ -6,11 +6,11 @@
 
   const dispatch = createEventDispatcher();
 
-  function onSubmit() {
+  function onSubmit(): void {
     dispatch("chatFormOnSubmit");
   }
 
-  function onAddDocumentClick() {
+  function onAddDocumentClick(): void {
     dispatch("chatFormOnAddDocumentClick");
   }
 </script>

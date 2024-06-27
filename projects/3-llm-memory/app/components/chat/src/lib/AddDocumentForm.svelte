@@ -6,14 +6,14 @@
 
   const dispatch = createEventDispatcher();
 
-  function onSubmit() {
+  function onSubmit(): void {
     dispatch("addDocumentFormOnSubmit", {
       title: title,
       body: body,
     });
   }
 
-  function onClose() {
+  function onClose(): void {
     dispatch("addDocumentFormOnClose");
   }
 </script>
