@@ -9,7 +9,7 @@ services:
     ports:
       - "${APP_PORT_HOST}:${APP_PORT}"
     volumes:
-      - ./app:/usr/src/app
+      - ./app:/app
       - ./volumes/app/pip:/root/.cache/pip
       - ./volumes/app/pip3:/usr/local/lib/python3.12/site-packages
       - ./volumes/app/nltk_data:/root/nltk_data
