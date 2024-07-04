@@ -45,3 +45,11 @@ _https://ollama.com/library_
 - `docker compose up --build`
 
 ## Resources
+
+- [OpenAI Chat API Docs](https://platform.openai.com/docs/api-reference/chat/create)
+- [Ollama Chat API Docs](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-chat-completion)
+- [Postgres](https://www.postgresql.org)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+- [Flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/)
+- [Flask-Migrate](https://github.com/miguelgrinberg/flask-migrate)
+- [SQLAlchemy-serializer](https://github.com/n0nSmoker/SQLAlchemy-serializer)
