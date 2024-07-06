@@ -1,0 +1,15 @@
+services:
+  web:
+    container_name: prompt_web
+    build: app
+    command: "python app.py"
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "${APP_PORT_HOST}:${APP_PORT}"
+    volumes:
+      - ./app:/app
+      - ./volumes/app/pip:/root/.cache/pip
+      - ./volumes/app/pip3:/usr/local/lib/python3.12/site-packages
+      - ./volumes/app/huggingface:/root/.cache/huggingface/hub
