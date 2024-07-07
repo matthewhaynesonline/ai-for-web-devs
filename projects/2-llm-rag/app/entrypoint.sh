@@ -4,8 +4,9 @@
 if ! command -v pip &> /dev/null
 then
     echo "pip could not be found. Reinstalling..."
-    python3 -m ensurepip
+    python -m ensurepip
     pip install -r requirements.txt
+    python -c "import nltk; nltk.download('punkt')"
 fi
 
 exec "$@"
