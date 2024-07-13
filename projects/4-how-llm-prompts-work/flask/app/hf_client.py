@@ -82,6 +82,7 @@ class HfClient:
 
     def llm_token_generate(self):
         # https://huggingface.co/blog/how-to-generate
+        # Set seed to reproduce results.
         set_seed(42)
 
         input_text = "I enjoy walking with my cute dog"
