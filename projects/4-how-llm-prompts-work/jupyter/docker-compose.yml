@@ -1,0 +1,17 @@
+services:
+  jupyterlab:
+    container_name: prompt_jupyterlab
+    user: root
+    image: quay.io/jupyter/pytorch-notebook:python-3.11
+    restart: always
+    volumes:
+      - ./notebooks:/home/jupyternb
+    environment:
+      - JUPYTER_TOKEN=token
+      - NB_USER=jupyternb
+      - NB_UID=1000
+      - NB_GID=100
+      - CHOWN_HOME=yes
+    working_dir: /home/jupyternb
+    ports:
+      - "8888:8888"
