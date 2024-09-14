@@ -5,7 +5,7 @@ from typing import Union, List
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from services.llm_client import LlmClient
+from services.app_llm import AppLlm
 
 # import threading
 # from sqlalchemy.orm import scoped_session
@@ -17,16 +17,16 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-from config import Config
 from database import db
 from models import Chat, ChatMessage, ChatSummary, ChatMessageRole, User
 
 
 class ChatManager:
-    def __init__(self, db_uri: str, llm_client: LlmClient):
+    def __init__(self, db_uri: str, app_llm: AppLlm):
         self.db_uri = db_uri
-        self.llm_client = llm_client
-        self.use_summaries = True
+        self.app_llm = app_llm
+        self.use_rag = False
+        self.use_summaries = False
 
     def create_chat_and_add_user(self, title: str, user: User) -> Chat:
         chat = Chat(title=title)
@@ -75,7 +75,9 @@ class ChatManager:
         )
 
         full_response = ""
-        response = self.llm_client.get_llm_chat_response_stream(messages=llm_messages)
+        response = self.app_llm.get_llm_chat_response_stream(
+            messages=llm_messages, use_rag=self.use_rag
+        )
 
         try:
             for token in response:
@@ -103,9 +105,7 @@ class ChatManager:
                     # and using raw messages?
                     # TODO use thread or background task
                     # Prevent race conditions
-                    summary = self.llm_client.get_chat_summary(
-                        chat_messages=chat_messages
-                    )
+                    summary = self.app_llm.get_chat_summary(chat_messages=chat_messages)
 
                     if response_message.chat.chat_summary is None:
                         chat_summary = ChatSummary(

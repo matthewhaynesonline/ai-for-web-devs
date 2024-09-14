@@ -10,7 +10,8 @@ from models import User, Chat, ChatMessageRole
 from services.app_logger import AppLogger
 from services.chat_manager import ChatManager
 from services.cli_commands import register_cli_commands
-from services.llm_client import LlmClient
+from services.app_llm import AppLlm
+from services.llm_http_client import LlmHttpClient
 from services.embedding_function import EmbeddingFunction
 from services.vector_store import VectorStore
 
@@ -102,9 +103,9 @@ def create_app():
     @app.route("/prompt", methods=["POST"])
     def prompt():
         user_input = request.json["prompt"].strip()
-        llm_client = get_llm_client()
+        app_llm = get_app_llm()
 
-        output = llm_client.get_llm_response(input=user_input)
+        output = app_llm.get_llm_response(input=user_input)
 
         return jsonify({"output": output})
 
@@ -159,31 +160,40 @@ def create_app():
 
 
 def app_boot():
-    llm_client = get_llm_client()
+    app_llm = get_app_llm()
 
     # Eagerly load the LLM
     # Use thread to not block render
     # https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-preload-a-model-into-ollama-to-get-faster-response-times
-    thread = threading.Thread(target=llm_client.get_llm_response, args=("", False))
+    thread = threading.Thread(target=app_llm.get_llm_response, args=("", False))
     thread.start()
 
 
-def get_llm_client() -> LlmClient:
-    if "llm_client" not in g:
+def get_llm_http_client() -> LlmHttpClient:
+    if "llm_http_client" not in g:
+        g.llm_http_client = LlmHttpClient(
+            inference_api_url=current_app.config["INFERENCE_API_URL"]
+        )
+
+    return g.llm_http_client
+
+
+def get_app_llm() -> AppLlm:
+    if "app_llm" not in g:
         embedding_function = get_embedding_function()
+        llm_http_client = get_llm_http_client()
         vector_store = get_vector_store()
         logger = get_app_logger()
 
-        g.llm_client = LlmClient(
-            ollama_instance_url=current_app.config["OLLAMA_INSTANCE_URL"],
-            model=current_app.config["MODEL"],
+        g.app_llm = AppLlm(
             embedding_function=embedding_function,
+            llm_http_client=llm_http_client,
             vector_store=vector_store,
             logger=logger,
             debug=current_app.config["DEBUG"],
         )
 
-    return g.llm_client
+    return g.app_llm
 
 
 def get_embedding_function() -> EmbeddingFunction:
@@ -230,10 +240,10 @@ def get_chat() -> Chat:
 
 def get_chat_manager() -> ChatManager:
     if "chat_manager" not in g:
-        llm_client = get_llm_client()
+        app_llm = get_app_llm()
 
         g.chat_manager = ChatManager(
-            db_uri=current_app.config["SQLALCHEMY_DATABASE_URI"], llm_client=llm_client
+            db_uri=current_app.config["SQLALCHEMY_DATABASE_URI"], app_llm=app_llm
         )
 
     return g.chat_manager

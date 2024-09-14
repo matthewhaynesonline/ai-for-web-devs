@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import Generator, List
 
 from jinja2 import Template
-from ollama import Client
 
 from services.app_logger import AppLogger
 from services.embedding_function import EmbeddingFunction
+from services.llm_http_client import LlmHttpClient
 from services.vector_store import VectorStore
 
 # TODO better way to do this (import from parent dir)?
@@ -21,30 +21,20 @@ if parent_dir not in sys.path:
 from models import ChatMessage, ChatMessageRole
 
 
-class LlmClient:
+class AppLlm:
     def __init__(
         self,
-        ollama_instance_url: str,
-        model: str,
         embedding_function: EmbeddingFunction,
+        llm_http_client: LlmHttpClient,
         vector_store: VectorStore,
         logger: AppLogger,
         debug: bool = False,
     ):
-        self.ollama_instance_url = ollama_instance_url
-        self.model = model
         self.embedding_function = embedding_function
+        self.llm_http_client = llm_http_client
         self.vector_store = vector_store
         self.logger = logger
         self.debug = debug
-
-        self.client = Client(host=ollama_instance_url)
-        self.client_options = {
-            # "num_ctx": 8000,
-            "temperature": 0.2,
-            # "top_k": 40,
-            # "top_p": 0.9,
-        }
 
         self.prompt_templates_dir = Path(__file__).parent / "prompts"
 
@@ -74,17 +64,16 @@ class LlmClient:
 
         self.log_llm_messages(caller="get_llm_response", messages=[chat_prompt])
 
-        response = self.client.generate(
-            model=self.model,
-            options=self.client_options,
-            keep_alive=-1,
-            system=self.system_prompt,
-            prompt=chat_prompt,
+        response = self.llm_http_client.get_llm_response(
+            prompt=chat_prompt, system_prompt_override=self.system_prompt
         )
-        output = response["response"]
-        output = self.clean_output(output)
+        response_content = ""
 
-        return output
+        if response["choices"][0]["message"]["content"] is not None:
+            response_content = response["choices"][0]["message"]["content"]
+            response_content = self.clean_output(response_content)
+
+        return response_content
 
     def get_llm_response_stream(
         self, input: str = "", use_rag: bool = True
@@ -96,20 +85,18 @@ class LlmClient:
 
         self.log_llm_messages(caller="get_llm_response_stream", messages=[chat_prompt])
 
-        response = self.client.generate(
-            model=self.model,
-            options=self.client_options,
-            keep_alive=-1,
-            system=self.system_prompt,
-            prompt=chat_prompt,
-            stream=True,
+        response = self.llm_http_client.get_llm_response_stream(
+            prompt=chat_prompt, system_prompt_override=self.system_prompt
         )
 
         for chunk in response:
-            output = chunk["response"]
-            output = self.clean_output(output)
+            response_content = ""
 
-            yield output
+            if chunk["choices"][0]["delta"]["content"] is not None:
+                response_content = chunk["choices"][0]["delta"]["content"]
+                response_content = self.clean_output(response_content)
+
+            yield response_content
 
     def get_llm_chat_response_stream(
         self, messages: List[dict], use_rag: bool = True
@@ -121,19 +108,18 @@ class LlmClient:
 
         self.log_llm_messages(caller="get_llm_chat_response_stream", messages=messages)
 
-        response = self.client.chat(
-            model=self.model,
-            options=self.client_options,
-            keep_alive=-1,
-            messages=messages,
-            stream=True,
+        response = self.llm_http_client.get_llm_chat_response_stream(
+            messages=messages, system_prompt_override=self.system_prompt
         )
 
         for chunk in response:
-            output = chunk["message"]["content"]
-            output = self.clean_output(output)
+            response_content = ""
 
-            yield output
+            if chunk["choices"][0]["delta"]["content"] is not None:
+                response_content = chunk["choices"][0]["delta"]["content"]
+                response_content = self.clean_output(response_content)
+
+            yield response_content
 
     def prepend_system_prompt_to_messages(self, messages: List[dict]) -> List[dict]:
         system_message = ChatMessage.convert_chat_message_to_llm_format(
@@ -186,22 +172,22 @@ class LlmClient:
 
         self.log_llm_messages(caller="get_chat_summary", messages=[chat_summary_prompt])
 
-        response = self.client.generate(
-            model=self.model,
-            options=self.client_options,
-            keep_alive=-1,
-            system=self.system_prompt,
-            prompt=chat_summary_prompt,
+        response = self.llm_http_client.get_llm_response(
+            prompt=chat_summary_prompt, system_prompt_override=self.system_prompt
         )
+        response_content = ""
 
-        output = response["response"]
-        output = self.clean_output(output)
+        if response["choices"][0]["message"]["content"] is not None:
+            response_content = response["choices"][0]["message"]["content"]
+            response_content = self.clean_output(response_content)
 
-        return output
+        return response_content
 
     def clean_output(self, output: str) -> str:
-        ending_token = "<|im_end|>"
-        output = output.replace(ending_token, "")
+        LLM_TEMPLATE_TOKENS = ["<|end|>", "<|im_end|>"]
+
+        for template_token in LLM_TEMPLATE_TOKENS:
+            output = output.replace(template_token, "")
 
         return output
 

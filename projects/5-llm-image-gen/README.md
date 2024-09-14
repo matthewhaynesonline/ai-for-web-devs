@@ -44,6 +44,10 @@ _https://ollama.com/library_
 
 - `docker compose up --build`
 
+### Fix perms issue
+
+- `sudo chown -R $USER:$USER ./`
+
 ## Resources
 
--
+- [AI Server Setup](https://github.com/matthewhaynesonline/ai-server-setup)

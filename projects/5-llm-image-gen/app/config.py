@@ -18,11 +18,11 @@ class Config:
     # https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#dialect-postgresql-psycopg-connect
     SQLALCHEMY_DATABASE_URI = f"{DB_ADAPTER}+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DB_HOSTNAME}:{DB_PORT}/{POSTGRES_DB}"
 
+    INFERENCE_API_URL = os.getenv("INFERENCE_API_URL")
+    MODEL = os.getenv("INFERENCE_MODEL_NAME")
+
     INFINITY_INSTANCE_URL = os.getenv("INFINITY_INSTANCE_URL")
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
-
-    OLLAMA_INSTANCE_URL = os.getenv("OLLAMA_INSTANCE_URL")
-    MODEL = os.getenv("MODEL")
 
     SEARCH_HOSTNAME = os.getenv("OPENSEARCH_HOSTNAME")
     SEARCH_PORT = os.getenv("OPENSEARCH_REST_API_PORT_HOST")

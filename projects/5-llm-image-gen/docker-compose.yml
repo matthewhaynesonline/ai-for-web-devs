@@ -20,8 +20,14 @@ services:
         condition: service_healthy
       opensearch-node1:
         condition: service_started
-      # ollama:
-      #   condition: service_started
+      # inference:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              driver: nvidia
+              count: all
 
   db:
     container_name: chat_db
@@ -41,11 +47,28 @@ services:
       retries: 5
       timeout: 10s
 
+  inference:
+    container_name: chat_inference
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    command: "-m models/${INFERENCE_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_PORT} --gpu-layers ${INFERENCE_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_CONTEXT_SIZE} --flash-attn --mlock"
+    restart: unless-stopped
+    ports:
+      - "${INFERENCE_PORT}:${INFERENCE_PORT}"
+    volumes:
+      - ./models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              driver: nvidia
+              count: all
+
   infinity:
     container_name: chat_infinity
     image: michaelf34/infinity:0.0.48
     environment:
-      - INFINITY_MODEL_ID=${EMBEDDING_MODEL_FULLNAME}
+      - INFINITY_MODEL_ID=${EMBEDDING_MODEL}
       - INFINITY_PORT=${INFINITY_PORT}
     command: "v2"
     restart: unless-stopped
@@ -56,15 +79,13 @@ services:
       interval: 60s
       retries: 5
       timeout: 10s
-
-  # ollama:
-  #   container_name: chat_ollama
-  #   image: ollama/ollama:0.1.42
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./volumes/ollama:/root/.ollama
-  #   ports:
-  #     - "${OLLAMA_PORT_HOST}:${OLLAMA_PORT}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              driver: nvidia
+              count: all
 
   opensearch-node1:
     container_name: chat_opensearch_opensearch_node1
