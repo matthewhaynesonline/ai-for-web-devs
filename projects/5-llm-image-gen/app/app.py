@@ -12,7 +12,7 @@ from services.chat_manager import ChatManager
 from services.cli_commands import register_cli_commands
 from services.app_llm import AppLlm
 from services.llm_http_client import LlmHttpClient
-from services.embedding_function import EmbeddingFunction
+from services.embedding_service import EmbeddingService
 from services.vector_store import VectorStore
 
 
@@ -180,13 +180,12 @@ def get_llm_http_client() -> LlmHttpClient:
 
 def get_app_llm() -> AppLlm:
     if "app_llm" not in g:
-        embedding_function = get_embedding_function()
+        embedding_service = get_embedding_service()
         llm_http_client = get_llm_http_client()
         vector_store = get_vector_store()
         logger = get_app_logger()
 
         g.app_llm = AppLlm(
-            embedding_function=embedding_function,
             llm_http_client=llm_http_client,
             vector_store=vector_store,
             logger=logger,
@@ -196,19 +195,19 @@ def get_app_llm() -> AppLlm:
     return g.app_llm
 
 
-def get_embedding_function() -> EmbeddingFunction:
-    if "embedding_function" not in g:
-        g.embedding_function = EmbeddingFunction(
-            infinity_instance_url=current_app.config["INFINITY_INSTANCE_URL"],
-            embedding_model=current_app.config["EMBEDDING_MODEL"],
+def get_embedding_service() -> EmbeddingService:
+    if "embedding_service" not in g:
+        g.embedding_service = EmbeddingService(
+            inference_api_url=current_app.config["INFINITY_INSTANCE_URL"],
+            model=current_app.config["EMBEDDING_MODEL"],
         )
 
-    return g.embedding_function
+    return g.embedding_service
 
 
 def get_vector_store() -> VectorStore:
     if "vector_store" not in g:
-        embedding_function = get_embedding_function()
+        embedding_service = get_embedding_service()
 
         g.vector_store = VectorStore(
             search_hostname=current_app.config["SEARCH_HOSTNAME"],
@@ -218,7 +217,7 @@ def get_vector_store() -> VectorStore:
                 current_app.config["SEARCH_PASSWORD"],
             ),
             content_dir=current_app.config["CONTENT_DIR"],
-            embedding_function=embedding_function,
+            embedding_service=embedding_service,
         )
 
     return g.vector_store

@@ -8,7 +8,6 @@ from typing import Generator, List
 from jinja2 import Template
 
 from services.app_logger import AppLogger
-from services.embedding_function import EmbeddingFunction
 from services.llm_http_client import LlmHttpClient
 from services.vector_store import VectorStore
 
@@ -24,13 +23,11 @@ from models import ChatMessage, ChatMessageRole
 class AppLlm:
     def __init__(
         self,
-        embedding_function: EmbeddingFunction,
         llm_http_client: LlmHttpClient,
         vector_store: VectorStore,
         logger: AppLogger,
         debug: bool = False,
     ):
-        self.embedding_function = embedding_function
         self.llm_http_client = llm_http_client
         self.vector_store = vector_store
         self.logger = logger

@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from opensearchpy import OpenSearch
 
 from services.data_loader import DataLoader
-from services.embedding_function import EmbeddingFunction
+from services.embedding_service import EmbeddingService
 
 
 class VectorStore:
@@ -16,11 +16,11 @@ class VectorStore:
         search_port: str,
         search_auth: tuple,
         content_dir: str,
-        embedding_function: EmbeddingFunction,
+        embedding_service: EmbeddingService,
     ):
         self.content_dir = content_dir
         self.data_loader = DataLoader(content_dir)
-        self.embedding_function = embedding_function
+        self.embedding_service = embedding_service
 
         self.search_client = OpenSearch(
             hosts=[{"host": search_hostname, "port": search_port}],
@@ -36,7 +36,7 @@ class VectorStore:
                 "properties": {
                     "embeddings": {
                         "type": "knn_vector",
-                        "dimension": self.embedding_function.get_embedding_dimensions(),
+                        "dimension": self.embedding_service.get_embedding_model_dimensions(),
                     },
                 }
             },
@@ -118,8 +118,10 @@ class VectorStore:
         for document in documents:
             # Todo: use bulk upload
             search_body = document.dict()
-            search_body["embedding_model"] = self.embedding_function.embedding_model
-            search_body["embeddings"] = self.embedding_function(document.page_content)
+            search_body["embedding_model"] = self.embedding_service.model
+            search_body["embeddings"] = self.embedding_service.get_embeddings(
+                document.page_content
+            )
 
             self.search_client.index(
                 index=self.index_name,
@@ -143,7 +145,7 @@ class VectorStore:
         return self.hybrid_query(text=text, size=size)
 
     def hybrid_query(self, text: str, size: int = 3) -> List:
-        query_embeddings = self.embedding_function.embed_query(text)
+        query_embeddings = self.embedding_service.get_embeddings(text)
 
         params = {"search_pipeline": self.search_pipeline_name}
 
@@ -184,7 +186,7 @@ class VectorStore:
         return results
 
     def vector_query(self, text: str, size: int = 3) -> List:
-        query_embeddings = self.embedding_function.embed_query(text)
+        query_embeddings = self.embedding_service.get_embeddings(text)
 
         search_query = self.default_search_query_body.copy()
         search_query["size"] = size
