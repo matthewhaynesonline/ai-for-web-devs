@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 
 from flask import Flask, current_app, g, jsonify, render_template, request, Response
@@ -10,6 +11,7 @@ from models import User, Chat, ChatMessageRole
 from services.app_logger import AppLogger
 from services.chat_manager import ChatManager
 from services.cli_commands import register_cli_commands
+from services.image_gen import ImageGen
 from services.app_llm import AppLlm
 from services.llm_http_client import LlmHttpClient
 from services.embedding_service import EmbeddingService
@@ -139,6 +141,31 @@ def create_app():
             mimetype="text/event-stream",
         )
 
+    @app.route("/image-generate", methods=["POST"])
+    def image_generate():
+        user_input = request.json["prompt"].strip()
+
+        generated_images_dir = app.config["GENERATED_IMAGES_DIR"]
+
+        image_gen = get_image_gen()
+        image_filename = image_gen.gen_image_from_prompt(prompt=user_input)
+
+        user = get_user()
+        chat = get_chat()
+        chat_manager = get_chat_manager()
+
+        chat_message = chat_manager.get_generated_image_and_save_messages(
+            image_filename=image_filename,
+            image_dir_path=generated_images_dir,
+            prompt=user_input,
+            assistantRole=ChatMessageRole.ASSISTANT,
+            userRole=ChatMessageRole.USER,
+            chat=chat,
+            user=user,
+        )
+
+        return jsonify({"output": chat_message.body})
+
     # @app.route("/chats", methods=["GET"])
     # def chats():
     #     chats = db.session.execute(db.select(Chat)).scalars().all()
@@ -151,8 +178,9 @@ def create_app():
 
     @app.route("/chats/<id>/chat-messages", methods=["DELETE"])
     def delete_chat_messages(id: int):
+        user = get_user()
         chat = get_chat()
-        chat_manager.delete_chat_messages_and_summary_for_chat(chat=chat)
+        chat_manager.delete_chat_messages_and_summary_for_chat(chat=chat, user=user)
 
         return jsonify(), 204
 
@@ -246,6 +274,16 @@ def get_chat_manager() -> ChatManager:
         )
 
     return g.chat_manager
+
+
+def get_image_gen() -> ImageGen:
+    if "image_gen" not in g:
+        generated_images_dir = current_app.config["GENERATED_IMAGES_DIR"]
+        os.makedirs(generated_images_dir, exist_ok=True)
+
+        g.image_gen = ImageGen(images_dir=generated_images_dir)
+
+    return g.image_gen
 
 
 def get_app_logger() -> AppLogger:

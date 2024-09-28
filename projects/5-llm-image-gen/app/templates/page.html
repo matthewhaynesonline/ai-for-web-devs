@@ -9,7 +9,7 @@
 {% block content %}
 {% if message %}
 <p>
-  {{ message }}
+  {{ message | safe }}
 </p>
 {% endif %}
 

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
 
   import {
+    checkIfStringIsCommand,
     doRequest,
     getFileNameWithoutExtensionAndTimeStamp,
     scrollToBottom,
@@ -21,6 +22,15 @@
   let showAddDocumentForm = false;
   let showMessageSourceModal = false;
   let showToast = false;
+
+  const inputCommands = [
+    {
+      label: "/image",
+      description:
+        "Generate an image. Type <strong>/image</strong> followed by a prompt.",
+      endpoint: "/image-generate",
+    },
+  ];
 
   const defaultPrompt = "";
   const defaultMessages: Array<object> = [];
@@ -130,6 +140,8 @@
       isUserMessage: true,
     });
 
+    let shouldRunCommand = checkIfStringIsCommand(currentPrompt);
+
     const requestBody = {
       prompt: currentPrompt,
     };
@@ -140,6 +152,35 @@
 
     messages.push(structuredClone(defaultChatMessage));
 
+    if (shouldRunCommand) {
+      for (const command of inputCommands) {
+        if (requestBody.prompt.startsWith(command.label)) {
+          await doCommand(command, requestBody);
+        }
+      }
+    } else {
+      await promptStream(requestBody);
+    }
+
+    isLoading = false;
+  }
+
+  async function doCommand(command, requestBody) {
+    requestBody.prompt = requestBody.prompt.replace(command.label, "");
+
+    const response = await doRequest(command.endpoint, requestBody, aborter);
+
+    if (response?.ok) {
+      const responseData = await response.json();
+      messages[messages.length - 1].body = responseData.output;
+      messages[messages.length - 1].date = Date.now();
+      refreshMessages();
+    } else {
+      flashToast();
+    }
+  }
+
+  async function promptStream(requestBody) {
     const response = await doRequest("/prompt-stream", requestBody, aborter);
 
     if (response?.ok) {
@@ -169,8 +210,6 @@
     } else {
       flashToast();
     }
-
-    isLoading = false;
   }
 
   function onChatAddDocumentClick(): void {
@@ -309,6 +348,7 @@
   <div class="fixed-bottom">
     <div class="container">
       <ChatForm
+        {inputCommands}
         bind:currentPrompt
         bind:isLoading
         on:chatFormOnSubmit={onChatFormSubmit}

@@ -18,7 +18,7 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 from database import db
-from models import Chat, ChatMessage, ChatSummary, ChatMessageRole, User
+from models import Chat, ChatMessage, ChatSummary, ChatMessageRole, GeneratedImage, User
 
 
 class ChatManager:
@@ -36,11 +36,14 @@ class ChatManager:
 
         return chat
 
-    def delete_chat_messages_and_summary_for_chat(self, chat: Chat) -> None:
+    def delete_chat_messages_and_summary_for_chat(self, chat: Chat, user: User) -> None:
         db.session.execute(db.delete(ChatSummary).where(ChatSummary.chat == chat))
         db.session.commit()
 
         db.session.execute(db.delete(ChatMessage).where(ChatMessage.chat == chat))
+        db.session.commit()
+
+        db.session.execute(db.delete(GeneratedImage).where(GeneratedImage.user == user))
         db.session.commit()
 
     def create_chat_message(
@@ -56,6 +59,38 @@ class ChatManager:
             chat_message = ChatMessage(body=body, role=role, chat=chat)
 
         db.session.add(chat_message)
+        db.session.commit()
+
+        return chat_message
+
+    def get_generated_image_and_save_messages(
+        self,
+        image_filename: str,
+        image_dir_path: str,
+        prompt: str,
+        assistantRole: ChatMessageRole,
+        userRole: ChatMessageRole,
+        chat: Chat,
+        user: Union[User, None] = None,
+    ) -> ChatMessage:
+        user_chat_message = ChatMessage(
+            body=prompt, role=userRole, chat=chat, user=user
+        )
+        db.session.add(user_chat_message)
+
+        generated_image = GeneratedImage(
+            filename=image_filename, prompt=prompt, user=user
+        )
+        db.session.add(generated_image)
+
+        chat_message = ChatMessage(
+            body=generated_image.as_image_tag(image_dir_path=image_dir_path),
+            role=assistantRole,
+            chat=chat,
+            generated_image=generated_image,
+        )
+        db.session.add(chat_message)
+
         db.session.commit()
 
         return chat_message

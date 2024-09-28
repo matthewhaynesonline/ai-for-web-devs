@@ -14,6 +14,11 @@ def save_document_to_disk(directory_path: str, title: str, body: str) -> str:
 
 
 def get_safe_file_name(name: str, file_extension: str = ".txt") -> str:
+    MAX_CHARACTERS = 200
+
+    if len(name) > MAX_CHARACTERS:
+        name = name[:MAX_CHARACTERS]
+
     # Replace characters not allowed in filenames with underscore
     safe_file_name = re.sub(r"[^\w\-_. ]", "_", name)
     safe_file_name = safe_file_name.strip()

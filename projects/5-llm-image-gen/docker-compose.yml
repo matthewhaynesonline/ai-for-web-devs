@@ -13,6 +13,7 @@ services:
       - ./volumes/app/pip:/root/.cache/pip
       - ./volumes/app/pip3:/usr/local/lib/python3.12/site-packages
       - ./volumes/app/nltk_data:/root/nltk_data
+      - ./volumes/app/huggingface:/root/.cache/huggingface/hub
     depends_on:
       db:
         condition: service_healthy

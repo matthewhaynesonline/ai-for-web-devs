@@ -1,7 +1,11 @@
-async function doRequest(
+export function checkIfStringIsCommand(input: string): boolean {
+  return input.startsWith("/");
+}
+
+export async function doRequest(
   url: string,
-  body,
-  aborter,
+  body: object,
+  aborter: AbortController,
   method: string = "POST"
 ): Promise<Response | null> {
   let response = null;
@@ -28,7 +32,7 @@ async function doRequest(
   return response;
 }
 
-function getFileNameWithoutExtensionAndTimeStamp(filename: string): string {
+export function getFileNameWithoutExtensionAndTimeStamp(filename: string): string {
   let newFileName = filename
     .split(".")
     .slice(0, -1)
@@ -40,7 +44,7 @@ function getFileNameWithoutExtensionAndTimeStamp(filename: string): string {
   return newFileName;
 }
 
-function scrollToBottom(): void {
+export function scrollToBottom(): void {
   const throttleMs = 200;
   const timeoutMs = 10;
 
@@ -55,7 +59,22 @@ function scrollToBottom(): void {
   );
 }
 
-function throttle(func, limit: number) {
+export function debounce(func, delay: number) {
+  let timeoutId: number;
+
+  return function () {
+    const args = arguments;
+    const context = this;
+
+    clearTimeout(timeoutId);
+
+    timeoutId = setTimeout(() => {
+      func.apply(context, args);
+    }, delay);
+  };
+}
+
+export function throttle(func, limit: number) {
   let inThrottle: boolean;
 
   return function () {
@@ -69,5 +88,3 @@ function throttle(func, limit: number) {
     }
   };
 }
-
-export { doRequest, getFileNameWithoutExtensionAndTimeStamp, scrollToBottom, throttle };

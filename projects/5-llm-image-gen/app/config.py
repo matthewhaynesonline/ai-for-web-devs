@@ -8,6 +8,8 @@ class Config:
     # https://stackoverflow.com/a/65407083
     DEBUG = os.getenv("APP_DEBUG", "False").lower() in ("true", "1", "t")
     CONTENT_DIR = os.path.dirname(__file__) + "/content"
+    STATIC_FILES_DIR = "static"
+    GENERATED_IMAGES_DIR = os.path.join(STATIC_FILES_DIR, "generated-images")
 
     DB_ADAPTER = os.getenv("DB_ADAPTER")
     DB_HOSTNAME = os.getenv("DB_HOSTNAME")

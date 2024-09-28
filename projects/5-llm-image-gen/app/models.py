@@ -65,7 +65,17 @@ class User(BaseModel):
     )
 
     chat_messages: Mapped[List["ChatMessage"]] = relationship(
-        back_populates="user", default_factory=list, repr=False
+        back_populates="user",
+        default_factory=list,
+        order_by="ChatMessage.id",
+        repr=False,
+    )
+
+    generated_images: Mapped[List["GeneratedImage"]] = relationship(
+        back_populates="user",
+        default_factory=list,
+        order_by="GeneratedImage.id",
+        repr=False,
     )
 
     serialize_rules = (
@@ -101,6 +111,7 @@ class Chat(BaseModel):
         "-users.chats",
         "-chat_messages.chat",
         "-chat_summary",
+        "-generated_images",
     )
 
     def __repr__(self) -> str:
@@ -154,10 +165,21 @@ class ChatMessage(BaseModel):
         back_populates="chat_messages", default=None, foreign_keys=[user_id], repr=False
     )
 
+    generated_image_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("generated_images.id"), default=None
+    )
+    generated_image: Mapped[Optional["GeneratedImage"]] = relationship(
+        back_populates="chat_message",
+        default=None,
+        foreign_keys=[generated_image_id],
+        repr=False,
+    )
+
     serialize_rules = (
         "-chat_summary.last_message",
         "-chat.chat_messages",
         "-user.chat_messages",
+        "-generated_image",
     )
 
     def __repr__(self) -> str:
@@ -196,3 +218,39 @@ class ChatSummary(BaseModel):
 
     def __repr__(self) -> str:
         return f"<ChatSummary {self.id}>"
+
+
+class GeneratedImage(BaseModel):
+    __tablename__ = "generated_images"
+
+    filename: Mapped[str] = mapped_column(default=None, unique=True)
+    prompt: Mapped[str] = mapped_column(default=None, nullable=False)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), default=None)
+    user: Mapped["User"] = relationship(
+        back_populates="generated_images",
+        default=None,
+        foreign_keys=[user_id],
+        repr=False,
+    )
+
+    chat_message: Mapped["ChatMessage"] = relationship(
+        back_populates="generated_image", default=None, repr=False
+    )
+
+    serialize_rules = (
+        "-chat_message",
+        "-user.generated_images",
+    )
+
+    def __repr__(self) -> str:
+        return f"<GeneratedImage {self.id}>"
+
+    def as_image_tag(self, image_dir_path: str, link_to_image: bool = True) -> str:
+        image_url = f"{image_dir_path}/{self.filename}"
+        image_tag_markup = f'<img class="img-fluid" src="{image_url}" alt="generated image of \'{self.prompt}\'" />'
+
+        if link_to_image:
+            image_tag_markup = f'<a href="{image_url}">{image_tag_markup}</a>'
+
+        return image_tag_markup

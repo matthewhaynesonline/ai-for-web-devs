@@ -14,7 +14,7 @@ docker exec -it chat_web flask db migrate -m "Initial migration"
 docker exec -it chat_web flask db upgrade
 docker exec -it chat_web flask db_seed
 
-# One liner wipe and reset DB
+# One liner wipe and reset DB and migrations
 docker exec -it chat_db psql -U app -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"; rm -rf app/migrations; docker exec -it chat_web flask db init; docker exec -it chat_web flask db migrate -m "Initial migration"; docker exec -it chat_web flask db upgrade; docker exec -it chat_web flask db_seed
 ```
 

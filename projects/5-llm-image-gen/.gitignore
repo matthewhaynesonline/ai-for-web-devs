@@ -6,6 +6,9 @@ app/content/*.txt
 
 app/logs/*
 
+app/static/generated-images/*
+!app/static/generated-images/.gitkeep
+
 models/*
 !models/.gitkeep
 
