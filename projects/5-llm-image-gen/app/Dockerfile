@@ -5,6 +5,14 @@ ARG APP_DIR=/app
 
 RUN groupadd -r ${APP_USER} && useradd -r -g ${APP_USER} ${APP_USER}
 
+# Install gcc and other build tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR ${APP_DIR}
 
 COPY requirements.txt requirements.txt

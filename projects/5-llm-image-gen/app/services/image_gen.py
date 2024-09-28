@@ -16,28 +16,46 @@ class ImageGen:
     def __init__(self, images_dir: str):
         self.images_dir = images_dir
         self.torch_dtype = torch.float16
-        self.pipeline_variant = "fp16"
+
+        self.pipe_variant = "fp16"
         self.bypass_safety_checker = True
+        self.use_torch_compile = False
 
         if torch.cuda.is_bf16_supported():
-            self.torch_dtype = self.torch_dtype
+            self.torch_dtype = torch.bfloat16
+
+        # https://huggingface.co/docs/diffusers/tutorials/fast_diffusion#torchcompile
+        if self.use_torch_compile:
+            torch._inductor.config.conv_1x1_as_mm = True
+            torch._inductor.config.coordinate_descent_tuning = True
+            torch._inductor.config.epilogue_fusion = False
+            torch._inductor.config.coordinate_descent_check_all_directions = True
 
         # https://huggingface.co/blog/lcm_lora
         self.model_id = "Lykon/absolute-reality-1.0"
         self.adapter_id = "latent-consistency/lcm-lora-sdv1-5"
-        self.pipeline = self.get_sd_15_lcm_pipeline(
+        self.pipe = self.get_sd_15_lcm_pipeline(
             model_id=self.model_id, adapter_id=self.adapter_id
         )
 
         # self.model_id = "stabilityai/stable-diffusion-2-1"
-        # self.pipeline = self.get_sd_21_pipeline(
+        # self.pipe = self.get_sd_21_pipeline(
         #     model_id=self.model_id
         # )
 
         # self.model_id = "black-forest-labs/FLUX.1-schnell"
-        # self.pipeline = self.get_flux_1_pipeline(
-        #     model_id=self.model_id
-        # )
+        # self.pipe = self.get_flux_1_pipeline(model_id=self.model_id)
+
+        if self.use_torch_compile:
+            self.pipe.unet.to(memory_format=torch.channels_last)
+            self.pipe.vae.to(memory_format=torch.channels_last)
+
+            self.pipe.unet = torch.compile(
+                self.pipe.unet, mode="max-autotune", fullgraph=True
+            )
+            self.pipe.vae.decode = torch.compile(
+                self.pipe.vae.decode, mode="max-autotune", fullgraph=True
+            )
 
     def get_sd_15_lcm_pipeline(
         self, model_id: str, adapter_id: str
@@ -45,69 +63,51 @@ class ImageGen:
         # https://huggingface.co/latent-consistency/lcm-lora-sdv1-5
 
         if self.bypass_safety_checker:
-            pipeline = AutoPipelineForText2Image.from_pretrained(
+            pipe = AutoPipelineForText2Image.from_pretrained(
                 model_id,
                 torch_dtype=self.torch_dtype,
-                variant=self.pipeline_variant,
+                variant=self.pipe_variant,
                 safety_checker=None,
             )
         else:
-            pipeline = AutoPipelineForText2Image.from_pretrained(
+            pipe = AutoPipelineForText2Image.from_pretrained(
                 model_id,
                 torch_dtype=self.torch_dtype,
-                variant=self.pipeline_variant,
+                variant=self.pipe_variant,
             )
 
-        pipeline.scheduler = LCMScheduler.from_config(pipeline.scheduler.config)
-        pipeline.to("cuda")
+        pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+        pipe.to("cuda")
 
         # load and fuse lcm lora
-        pipeline.load_lora_weights(adapter_id)
-        pipeline.fuse_lora()
+        pipe.load_lora_weights(adapter_id)
+        pipe.fuse_lora()
 
-        return pipeline
+        return pipe
 
-    def get_sd_21_pipeline(self, model_id: str) -> StableDiffusionPipeline:
-        if self.bypass_safety_checker:
-            pipeline = StableDiffusionPipeline.from_pretrained(
-                model_id,
-                torch_dtype=self.torch_dtype,
-                variant=self.pipeline_variant,
-                safety_checker=None,
-            )
-        else:
-            pipeline = StableDiffusionPipeline.from_pretrained(
-                model_id,
-                torch_dtype=self.torch_dtype,
-                variant=self.pipeline_variant,
-            )
+    # def get_sd_21_pipeline(self, model_id: str) -> StableDiffusionPipeline:
+    #     pipe = StableDiffusionPipeline.from_pretrained(
+    #         model_id,
+    #         torch_dtype=self.torch_dtype,
+    #     )
 
-        pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
-            pipeline.scheduler.config
-        )
-        pipeline = pipeline.to("cuda")
+    #     pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+    #         pipe.scheduler.config
+    #     )
+    #     pipe = pipe.to("cuda")
 
-        return pipeline
+    #     return pipe
 
     def get_flux_1_pipeline(self, model_id: str) -> FluxPipeline:
-        if self.bypass_safety_checker:
-            pipeline = FluxPipeline.from_pretrained(
-                model_id,
-                torch_dtype=self.torch_dtype,
-                variant=self.pipeline_variant,
-                safety_checker=None,
-            )
-        else:
-            pipeline = FluxPipeline.from_pretrained(
-                model_id,
-                torch_dtype=self.torch_dtype,
-                variant=self.pipeline_variant,
-            )
+        pipe = FluxPipeline.from_pretrained(
+            model_id,
+            torch_dtype=self.torch_dtype,
+        )
 
-        pipeline = pipeline.to("cuda")
-        # pipeline.enable_model_cpu_offload()
+        pipe = pipe.to("cuda")
+        # pipe.enable_model_cpu_offload()
 
-        return pipeline
+        return pipe
 
     def gen_image_from_prompt(self, prompt: str) -> str:
         # height = 512
@@ -121,15 +121,13 @@ class ImageGen:
         filename = get_safe_file_name(prompt, file_extension=".png")
         image_filepath = self.get_image_filepath(filename)
 
-        # image = self.pipeline(prompt).images[0]
-
-        image = self.pipeline(
+        image = self.pipe(
             prompt=prompt,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
         ).images[0]
 
-        # image = self.pipeline(
+        # image = self.pipe(
         #     prompt, height=height, width=width, guidance_scale=0.0, num_inference_steps=4, max_sequence_length=256
         # ).images[0]
 
