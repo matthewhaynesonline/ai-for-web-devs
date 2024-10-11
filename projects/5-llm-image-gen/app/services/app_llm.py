@@ -89,9 +89,14 @@ class AppLlm:
         for chunk in response:
             response_content = ""
 
-            if chunk["choices"][0]["delta"]["content"] is not None:
-                response_content = chunk["choices"][0]["delta"]["content"]
-                response_content = self.clean_output(response_content)
+            try:
+                # https://stackoverflow.com/a/43491315
+                chunk_content = chunk["choices"][0]["delta"]["content"]
+
+                if chunk_content is not None:
+                    response_content = self.clean_output(chunk_content)
+            except (KeyError, TypeError):
+                pass
 
             yield response_content
 
@@ -112,9 +117,14 @@ class AppLlm:
         for chunk in response:
             response_content = ""
 
-            if chunk["choices"][0]["delta"]["content"] is not None:
-                response_content = chunk["choices"][0]["delta"]["content"]
-                response_content = self.clean_output(response_content)
+            try:
+                # https://stackoverflow.com/a/43491315
+                chunk_content = chunk["choices"][0]["delta"]["content"]
+
+                if chunk_content is not None:
+                    response_content = self.clean_output(chunk_content)
+            except (KeyError, TypeError):
+                pass
 
             yield response_content
 

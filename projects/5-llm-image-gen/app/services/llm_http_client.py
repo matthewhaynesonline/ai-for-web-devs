@@ -84,10 +84,15 @@ class LlmHttpClient:
         ) as response:
             for chunk in response.iter_text():
                 if chunk:
+                    decoded_chunk_content = ""
                     decoded_chunk = self.parse_server_sent_event_response(chunk)
-                    decoded_chunk = json.loads(decoded_chunk)
 
-                    yield decoded_chunk
+                    try:
+                        decoded_chunk_content = json.loads(decoded_chunk)
+                    except ValueError:
+                        pass
+
+                    yield decoded_chunk_content
 
     def get_llm_chat_response_stream(
         self, messages: List[dict], system_prompt_override: str | None = None
@@ -126,10 +131,15 @@ class LlmHttpClient:
         ) as response:
             for chunk in response.iter_text():
                 if chunk:
+                    decoded_chunk_content = ""
                     decoded_chunk = self.parse_server_sent_event_response(chunk)
-                    decoded_chunk = json.loads(decoded_chunk)
 
-                    yield decoded_chunk
+                    try:
+                        decoded_chunk_content = json.loads(decoded_chunk)
+                    except ValueError:
+                        pass
+
+                    yield decoded_chunk_content
 
     def parse_server_sent_event_response(self, response) -> str:
         parsed_response = ""
