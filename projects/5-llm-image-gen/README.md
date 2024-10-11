@@ -51,3 +51,11 @@ _https://ollama.com/library_
 ## Resources
 
 - [AI Server Setup](https://github.com/matthewhaynesonline/ai-server-setup)
+- [WebForge UI](https://github.com/lllyasviel/stable-diffusion-webui-forge)
+- [Comfy UI](https://github.com/comfyanonymous/ComfyUI)
+- [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)
+- [Civitai](https://civitai.com/)
+- [Hugging Face Diffusers](https://github.com/huggingface/diffusers)
+- [PyTorch](https://pytorch.org/)
+- [Latent Consistency Stable Diffusion 1.5](https://huggingface.co/latent-consistency/lcm-lora-sdv1-5)
+- [Flux](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
