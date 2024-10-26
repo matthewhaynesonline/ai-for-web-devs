@@ -26,14 +26,20 @@ class LlmHttpClient:
         self,
         messages: List[Dict],
         system_prompt_override: Optional[str] = None,
+        response_format: Optional[Dict] = None,
         return_parsed_content: bool = True,
+        inference_api_url_override: Optional[str] = None,
     ) -> Optional[Dict | str]:
         headers, body = self.prepare_request(
-            messages=messages, system_prompt_override=system_prompt_override
+            messages=messages,
+            system_prompt_override=system_prompt_override,
+            response_format=response_format,
         )
 
+        inference_api_url = inference_api_url_override or self.inference_api_url
+
         response = self.http_client.post(
-            f"{self.inference_api_url}/v1/chat/completions", headers=headers, json=body
+            f"{inference_api_url}/v1/chat/completions", headers=headers, json=body
         )
 
         response_content = response.json()
@@ -50,6 +56,7 @@ class LlmHttpClient:
         messages: List[Dict],
         system_prompt_override: Optional[str] = None,
         return_parsed_content: bool = True,
+        inference_api_url_override: Optional[str] = None,
     ) -> Generator[Optional[Dict | str], None, None]:
         headers, body = self.prepare_request(
             messages=messages,
@@ -57,9 +64,11 @@ class LlmHttpClient:
             stream=True,
         )
 
+        inference_api_url = inference_api_url_override or self.inference_api_url
+
         with self.http_client.stream(
             "POST",
-            f"{self.inference_api_url}/v1/chat/completions",
+            f"{inference_api_url}/v1/chat/completions",
             headers=headers,
             json=body,
         ) as response:
@@ -85,6 +94,7 @@ class LlmHttpClient:
         self,
         messages: List[Dict],
         system_prompt_override: Optional[str] = None,
+        response_format: Optional[Dict] = None,
         stream: bool = False,
     ) -> tuple:
         headers = {
@@ -107,6 +117,9 @@ class LlmHttpClient:
 
         if stream:
             body["stream"] = True
+
+        if response_format:
+            body.update({"response_format": response_format})
 
         return headers, body
 

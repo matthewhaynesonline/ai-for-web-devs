@@ -19,9 +19,11 @@ services:
         condition: service_healthy
       infinity:
         condition: service_healthy
-      opensearch-node1:
-        condition: service_started
       inference:
+        condition: service_started
+      inference_small:
+        condition: service_started
+      opensearch-node1:
         condition: service_started
     deploy:
       resources:
@@ -56,6 +58,23 @@ services:
     restart: unless-stopped
     ports:
       - "${INFERENCE_PORT}:${INFERENCE_PORT}"
+    volumes:
+      - ./models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              driver: nvidia
+              count: all
+
+  inference_small:
+    container_name: chat_inference_small
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    command: "-m models/${INFERENCE_SMALL_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_SMALL_PORT} --gpu-layers ${INFERENCE_SMALL_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_SMALL_CONTEXT_SIZE} --flash-attn --mlock"
+    restart: unless-stopped
+    ports:
+      - "${INFERENCE_SMALL_PORT}:${INFERENCE_SMALL_PORT}"
     volumes:
       - ./models:/models
     deploy:

@@ -21,6 +21,7 @@ ssh $ssh_connection <<EOF
   echo
   cd $project_dir_path/models
   curl -O -L $model_file_download_url
+  curl -O -L $model_small_file_download_url
 
   # Test NVIDIA container
   docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi

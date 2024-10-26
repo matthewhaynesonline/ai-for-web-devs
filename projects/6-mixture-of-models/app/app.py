@@ -120,44 +120,63 @@ def create_app():
         chat = get_chat()
         chat_manager = get_chat_manager()
 
-        chat_manager.create_chat_message(
-            body=user_input, role=ChatMessageRole.USER, chat=chat, user=user
-        )
+        app_llm = get_app_llm()
+        classification = app_llm.classify_message(user_input)
 
-        chat_summary = ""
-        chat_summary_last_message_id = 0
+        if classification.is_image:
+            image_gen_prompt = app_llm.get_diffusion_prompt_from_input(input=user_input)
 
-        if chat.chat_summary and chat.chat_summary.body:
-            chat_summary = chat.chat_summary.body
-            chat_summary_last_message_id = chat.chat_summary.last_message_id
+            image_gen = get_image_gen()
+            image_filename = image_gen.gen_image_from_prompt(prompt=image_gen_prompt)
 
-        return Response(
-            chat_manager.get_llm_response_stream_and_save_messages(
+            chat_message = chat_manager.get_generated_image_and_save_messages(
+                image_filename=image_filename,
+                image_dir_path=app.config["GENERATED_IMAGES_DIR"],
+                prompt=user_input,
                 assistantRole=ChatMessageRole.ASSISTANT,
+                userRole=ChatMessageRole.USER,
                 chat=chat,
-                chat_messages=chat.chat_messages,
-                chat_summary=chat_summary,
-                chat_summary_last_message_id=chat_summary_last_message_id,
-            ),
-            mimetype="text/event-stream",
-        )
+                user=user,
+            )
+
+            return jsonify({"output": chat_message.body})
+        else:
+            chat_manager.create_chat_message(
+                body=user_input, role=ChatMessageRole.USER, chat=chat, user=user
+            )
+
+            chat_summary = ""
+            chat_summary_last_message_id = 0
+
+            if chat.chat_summary and chat.chat_summary.body:
+                chat_summary = chat.chat_summary.body
+                chat_summary_last_message_id = chat.chat_summary.last_message_id
+
+            return Response(
+                chat_manager.get_llm_response_stream_and_save_messages(
+                    assistantRole=ChatMessageRole.ASSISTANT,
+                    chat=chat,
+                    chat_messages=chat.chat_messages,
+                    chat_summary=chat_summary,
+                    chat_summary_last_message_id=chat_summary_last_message_id,
+                ),
+                mimetype="text/event-stream",
+            )
 
     @app.route("/image-generate", methods=["POST"])
     def image_generate():
         user_input = request.json["prompt"].strip()
 
-        generated_images_dir = app.config["GENERATED_IMAGES_DIR"]
-
-        image_gen = get_image_gen()
-        image_filename = image_gen.gen_image_from_prompt(prompt=user_input)
-
         user = get_user()
         chat = get_chat()
         chat_manager = get_chat_manager()
 
+        image_gen = get_image_gen()
+        image_filename = image_gen.gen_image_from_prompt(prompt=user_input)
+
         chat_message = chat_manager.get_generated_image_and_save_messages(
             image_filename=image_filename,
-            image_dir_path=generated_images_dir,
+            image_dir_path=app.config["GENERATED_IMAGES_DIR"],
             prompt=user_input,
             assistantRole=ChatMessageRole.ASSISTANT,
             userRole=ChatMessageRole.USER,
@@ -214,6 +233,7 @@ def get_app_llm() -> AppLlm:
         logger = get_app_logger()
 
         g.app_llm = AppLlm(
+            inference_small_api_url=current_app.config["INFERENCE_SMALL_API_URL"],
             llm_http_client=llm_http_client,
             content_store=content_store,
             logger=logger,

@@ -2,14 +2,17 @@ import json
 import os
 import sys
 
+
+from functools import cached_property
 from pathlib import Path
-from typing import Generator, List
+from typing import Dict, Generator, List, Optional, Type
 
 from jinja2 import Template
 
 from services.app_logger import AppLogger
 from services.llm_http_client import LlmHttpClient
 from services.content_store import ContentStore
+from services.response_types import ResponseTypesFlags
 
 # TODO better way to do this (import from parent dir)?
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -23,11 +26,13 @@ from models import ChatMessage, ChatMessageRole
 class AppLlm:
     def __init__(
         self,
+        inference_small_api_url: str,
         llm_http_client: LlmHttpClient,
         content_store: ContentStore,
         logger: AppLogger,
         debug: bool = False,
     ):
+        self.inference_small_api_url = inference_small_api_url
         self.llm_http_client = llm_http_client
         self.content_store = content_store
         self.logger = logger
@@ -62,6 +67,71 @@ class AppLlm:
 
         self.system_prompt = self.prompt_templates["system"]["template_string"]
 
+    ############
+    # Classifier
+    ############
+    @cached_property
+    def classifier_response_format(self) -> Dict:
+        fields = ResponseTypesFlags.__annotations__.keys()
+
+        properties = {field: {"title": field, "type": "boolean"} for field in fields}
+
+        response_format = {
+            "type": "json_object",
+            "schema": {
+                "properties": properties,
+            },
+            "required": list(fields),
+        }
+
+        return response_format
+
+    def classify_message(self, message: str = "") -> Optional[ResponseTypesFlags]:
+        system_prompt_override = "You are a helpful assistant designed to output JSON."
+
+        message = self.prompt_templates["message_classifier"]["template"].render(
+            {"message": message}
+        )
+
+        message = ChatMessage.convert_chat_message_to_llm_format(
+            role=ChatMessageRole.USER.value, content=message
+        )
+
+        self.log_llm_messages(caller="classify_message", messages=[message])
+        response = self.llm_http_client.get_llm_response(
+            messages=[message],
+            system_prompt_override=system_prompt_override,
+            response_format=self.classifier_response_format,
+            inference_api_url_override=self.inference_small_api_url,
+        )
+
+        response_content = None
+
+        if response is not None:
+            response_content = json.loads(response)
+            response_content = ResponseTypesFlags(**response_content)
+
+        return response_content
+
+    ##################
+    # Image Gen Helper
+    ##################
+    def get_diffusion_prompt_from_input(self, input: str = "") -> str:
+        diffusion_prompt = self.prompt_templates["diffusion_prompt_from_message"][
+            "template"
+        ].render({"message": input})
+
+        self.log_llm_messages(caller="get_chat_summary", messages=[diffusion_prompt])
+        response_content = self.get_llm_response_for_single_message(
+            content=diffusion_prompt,
+            system_prompt_override="You are a helpful assistant.",
+        )
+
+        return response_content
+
+    ############
+    # LLM Calls
+    ############
     def get_llm_response(self, input: str = "", use_rag: bool = True) -> str:
         chat_prompt = input
 
@@ -107,13 +177,17 @@ class AppLlm:
 
         return response_content
 
-    def get_llm_response_for_single_message(self, content: str) -> str:
+    def get_llm_response_for_single_message(
+        self, content: str, system_prompt_override: Optional[str] = None
+    ) -> str:
+        system_prompt = system_prompt_override or self.system_prompt
+
         message = ChatMessage.convert_chat_message_to_llm_format(
             role=ChatMessageRole.USER.value, content=content
         )
 
         response = self.llm_http_client.get_llm_response(
-            messages=[message], system_prompt_override=self.system_prompt
+            messages=[message], system_prompt_override=system_prompt
         )
 
         response_content = ""
@@ -123,6 +197,9 @@ class AppLlm:
 
         return response_content
 
+    ######
+    # RAG
+    ######
     def get_rag_prompt(self, input: str) -> str:
         context = self.get_relevant_context(input)
 
@@ -158,6 +235,9 @@ class AppLlm:
 
         return messages
 
+    ########
+    # Utils
+    ########
     def log_llm_messages(self, caller: str, messages: list) -> None:
         if not self.debug:
             return

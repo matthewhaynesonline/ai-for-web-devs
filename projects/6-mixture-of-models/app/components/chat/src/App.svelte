@@ -40,7 +40,8 @@
   const inputCommands: InputCommand[] = [
     {
       label: "/image",
-      description: "Generate an image.  <strong>/image</strong> followed by a prompt.",
+      description:
+        "Generate an image. Type <strong>/image</strong> followed by a prompt.",
       endpoint: "/image-generate",
     },
   ];
