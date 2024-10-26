@@ -23,13 +23,13 @@ services:
         condition: service_started
       inference:
         condition: service_started
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-              driver: nvidia
-              count: all
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+    #           driver: nvidia
+    #           count: all
 
   db:
     container_name: chat_db
@@ -51,20 +51,21 @@ services:
 
   inference:
     container_name: chat_inference
-    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    image: ghcr.io/ggerganov/llama.cpp:server
+    # image: ghcr.io/ggerganov/llama.cpp:server-cuda
     command: "-m models/${INFERENCE_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_PORT} --gpu-layers ${INFERENCE_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_CONTEXT_SIZE} --flash-attn --mlock"
     restart: unless-stopped
     ports:
       - "${INFERENCE_PORT}:${INFERENCE_PORT}"
     volumes:
       - ./models:/models
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-              driver: nvidia
-              count: all
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+    #           driver: nvidia
+    #           count: all
 
   infinity:
     container_name: chat_infinity
@@ -81,13 +82,13 @@ services:
       interval: 60s
       retries: 5
       timeout: 10s
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-              driver: nvidia
-              count: all
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+    #           driver: nvidia
+    #           count: all
 
   opensearch-node1:
     container_name: chat_opensearch_opensearch_node1
