@@ -76,6 +76,8 @@ services:
     restart: unless-stopped
     ports:
       - "${INFINITY_PORT}:${INFINITY_PORT}"
+    volumes:
+      - ./volumes/infinity:/app/.cache
     healthcheck:
       test: "curl -f localhost:${INFINITY_PORT} || exit 1"
       interval: 60s

@@ -13,12 +13,12 @@ if [ "$dry_run" = true ]; then
   echo
   echo "Checking code diff"
   echo
-  rsync -avn --itemize-changes -P --include="docker-compose.yml" --include=".env" --include="app/***" --exclude="*" $script_dir/../ $ssh_connection:$project_dir_path
+  rsync -avn --itemize-changes -P --include="docker-compose.yml" --include=".env.example" --include="app/***" --exclude="*" $script_dir/../ $ssh_connection:$project_dir_path
 else
   echo
   echo "Deploying code"
   echo
-  rsync -a -P --include="docker-compose.yml" --include=".env" --include="app/***" --exclude="*" $script_dir/../ $ssh_connection:$project_dir_path
+  rsync -a -P --include="docker-compose.yml" --include=".env.example" --include="app/***" --exclude="*" $script_dir/../ $ssh_connection:$project_dir_path
 fi
 
 

@@ -110,7 +110,7 @@ class ChatManager:
         )
 
         full_response = ""
-        response = self.app_llm.get_llm_chat_response_stream(
+        response = self.app_llm.get_llm_response_stream(
             messages=llm_messages, use_rag=self.use_rag
         )
 

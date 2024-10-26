@@ -15,7 +15,7 @@ from services.image_gen import ImageGen
 from services.app_llm import AppLlm
 from services.llm_http_client import LlmHttpClient
 from services.embedding_service import EmbeddingService
-from services.vector_store import VectorStore
+from services.content_store import ContentStore, OpenSearchConfig
 
 
 def create_app():
@@ -74,8 +74,8 @@ def create_app():
     def refresh():
         user = get_user()
 
-        vector_store = get_vector_store()
-        vector_store.refresh_index()
+        content_store = get_content_store()
+        content_store.refresh_index()
 
         return render_template(
             "page.html",
@@ -90,26 +90,27 @@ def create_app():
         title = request.json["title"]
         body = request.json["body"]
 
-        vector_store = get_vector_store()
-        vector_store.add_document(title, body)
+        content_store = get_content_store()
+        content_store.add_document(title, body)
 
         return jsonify({}), 200
 
     @app.route("/document/find/<query>", methods=["GET"])
     def find_document(query: str):
-        vector_store = get_vector_store()
-        result = vector_store.find_document(query)
+        content_store = get_content_store()
+        result = content_store.find_document(query)
 
         return jsonify(result), 200
 
-    @app.route("/prompt", methods=["POST"])
-    def prompt():
-        user_input = request.json["prompt"].strip()
-        app_llm = get_app_llm()
+    # # Deprecated
+    # @app.route("/prompt", methods=["POST"])
+    # def prompt():
+    #     user_input = request.json["prompt"].strip()
+    #     app_llm = get_app_llm()
 
-        output = app_llm.get_llm_response(input=user_input)
+    #     output = app_llm.get_llm_response(input=user_input)
 
-        return jsonify({"output": output})
+    #     return jsonify({"output": output})
 
     @app.route("/prompt-stream", methods=["POST"])
     def prompt_stream():
@@ -208,14 +209,13 @@ def get_llm_http_client() -> LlmHttpClient:
 
 def get_app_llm() -> AppLlm:
     if "app_llm" not in g:
-        embedding_service = get_embedding_service()
         llm_http_client = get_llm_http_client()
-        vector_store = get_vector_store()
+        content_store = get_content_store()
         logger = get_app_logger()
 
         g.app_llm = AppLlm(
             llm_http_client=llm_http_client,
-            vector_store=vector_store,
+            content_store=content_store,
             logger=logger,
             debug=current_app.config["DEBUG"],
         )
@@ -233,22 +233,26 @@ def get_embedding_service() -> EmbeddingService:
     return g.embedding_service
 
 
-def get_vector_store() -> VectorStore:
-    if "vector_store" not in g:
+def get_content_store() -> ContentStore:
+    if "content_store" not in g:
         embedding_service = get_embedding_service()
 
-        g.vector_store = VectorStore(
-            search_hostname=current_app.config["SEARCH_HOSTNAME"],
-            search_port=current_app.config["SEARCH_PORT"],
-            search_auth=(
+        search_config = OpenSearchConfig(
+            hostname=current_app.config["SEARCH_HOSTNAME"],
+            port=current_app.config["SEARCH_PORT"],
+            auth=(
                 current_app.config["SEARCH_USER"],
                 current_app.config["SEARCH_PASSWORD"],
             ),
+        )
+
+        g.content_store = ContentStore(
+            search_config=search_config,
             content_dir=current_app.config["CONTENT_DIR"],
             embedding_service=embedding_service,
         )
 
-    return g.vector_store
+    return g.content_store
 
 
 def get_user() -> User:
