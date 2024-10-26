@@ -2,6 +2,20 @@
   import { onMount } from "svelte";
 
   import {
+    BackendChatMessageRole,
+    ChatMessageAuthor,
+    ToastState,
+  } from "./lib/appTypes";
+
+  import type {
+    InitialChatState,
+    ChatMessage,
+    ToastMessage,
+    Source,
+    InputCommand,
+  } from "./lib/appTypes";
+
+  import {
     checkIfStringIsCommand,
     doRequest,
     getFileNameWithoutExtensionAndTimeStamp,
@@ -10,11 +24,11 @@
 
   import AddDocumentForm from "./lib/AddDocumentForm.svelte";
   import ChatForm from "./lib/ChatForm.svelte";
-  import ChatMessage from "./lib/ChatMessage.svelte";
+  import ChatMessageComponent from "./lib/ChatMessage.svelte";
   import MessageSourceModal from "./lib/MessageSourceModal.svelte";
   import Toast from "./lib/Toast.svelte";
 
-  export let initialChatState = {};
+  export let initialChatState: InitialChatState;
 
   let aborter = new AbortController();
 
@@ -23,43 +37,42 @@
   let showMessageSourceModal = false;
   let showToast = false;
 
-  const inputCommands = [
+  const inputCommands: InputCommand[] = [
     {
       label: "/image",
-      description:
-        "Generate an image. Type <strong>/image</strong> followed by a prompt.",
+      description: "Generate an image.  <strong>/image</strong> followed by a prompt.",
       endpoint: "/image-generate",
     },
   ];
 
   const defaultPrompt = "";
-  const defaultMessages: Array<object> = [];
-
   let currentPrompt = defaultPrompt;
+
+  const defaultMessages: Array<ChatMessage> = [];
   let messages = structuredClone(defaultMessages);
 
-  const userAuthor = "You";
-  const defaultChatMessage = {
+  const userAuthor = ChatMessageAuthor.User;
+  const defaultChatMessage: ChatMessage = {
     body: "",
-    author: "🤖 MattGPT",
+    author: ChatMessageAuthor.System,
     date: null,
     isUserMessage: false,
   };
 
-  const defaultToastMessage = {
+  const defaultToastMessage: ToastMessage = {
     title: "",
     body: "",
-    state: "danger",
+    state: ToastState.Danger,
   };
 
-  let toastMessage = structuredClone(defaultToastMessage);
+  let toastMessage: ToastMessage = structuredClone(defaultToastMessage);
 
-  let defaultSource = {
+  let defaultSource: Source = {
     source: "",
     page_content: "",
   };
 
-  let currentSource = structuredClone(defaultSource);
+  let currentSource: Source = structuredClone(defaultSource);
 
   onMount(() => {
     setChatMessageFromInitialState();
@@ -71,7 +84,7 @@
       newMessage.body = message.body;
       newMessage.date = new Date(message.created_at);
 
-      if (message.role === "user") {
+      if (message.role === BackendChatMessageRole.User) {
         newMessage.author = userAuthor;
         newMessage.isUserMessage = true;
       }
@@ -98,7 +111,7 @@
     const endpointUrl = `/chats/${initialChatState.id}/chat-messages`;
     await doRequest(endpointUrl, {}, aborter, "DELETE");
 
-    flashToast("Success!", "Chat cleared!", "danger");
+    flashToast("Success!", "Chat cleared!", ToastState.Info);
 
     currentPrompt = defaultPrompt;
     messages = structuredClone(defaultMessages);
@@ -109,7 +122,7 @@
   async function flashToast(
     title = "There was an error.",
     body = "Please try again later.",
-    state = "danger",
+    state: ToastState = ToastState.Danger,
   ): Promise<void> {
     toastMessage.title = title;
     toastMessage.body = body;
@@ -165,51 +178,62 @@
     isLoading = false;
   }
 
-  async function doCommand(command, requestBody) {
+  async function doCommand(command: InputCommand, requestBody: object) {
     requestBody.prompt = requestBody.prompt.replace(command.label, "");
 
     const response = await doRequest(command.endpoint, requestBody, aborter);
 
     if (response?.ok) {
-      const responseData = await response.json();
-      messages[messages.length - 1].body = responseData.output;
-      messages[messages.length - 1].date = Date.now();
-      refreshMessages();
+      await addMessageFromResponse(response);
     } else {
       flashToast();
     }
   }
 
-  async function promptStream(requestBody) {
+  async function promptStream(requestBody: object) {
     const response = await doRequest("/prompt-stream", requestBody, aborter);
 
     if (response?.ok) {
-      let firstTokenLoadedAlreadyLoaded = false;
-      const reader = response.body.getReader();
+      const contentType = response.headers.get("content-type");
+      const isJson = contentType?.includes("application/json");
 
-      while (true) {
-        const { done, value } = await reader.read();
+      if (isJson) {
+        await addMessageFromResponse(response);
+      } else {
+        let firstTokenLoadedAlreadyLoaded = false;
+        const reader = response.body.getReader();
 
-        if (done) {
-          break;
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          const text = new TextDecoder().decode(value);
+
+          if (firstTokenLoadedAlreadyLoaded) {
+            messages[messages.length - 1].body += text;
+          } else {
+            messages[messages.length - 1].body = text;
+            messages[messages.length - 1].date = Date.now();
+
+            firstTokenLoadedAlreadyLoaded = true;
+          }
+
+          refreshMessages();
         }
-
-        const text = new TextDecoder().decode(value);
-
-        if (firstTokenLoadedAlreadyLoaded) {
-          messages[messages.length - 1].body += text;
-        } else {
-          messages[messages.length - 1].body = text;
-          messages[messages.length - 1].date = Date.now();
-
-          firstTokenLoadedAlreadyLoaded = true;
-        }
-
-        refreshMessages();
       }
     } else {
       flashToast();
     }
+  }
+
+  async function addMessageFromResponse(response) {
+    const responseData = await response.json();
+    messages[messages.length - 1].body = responseData.output;
+    messages[messages.length - 1].date = Date.now();
+    refreshMessages();
   }
 
   function onChatAddDocumentClick(): void {
@@ -229,7 +253,7 @@
     let response = await doRequest(endpointUrl, newDocument, aborter);
 
     if (response?.ok) {
-      flashToast("Success!", "Document added successfully", "success");
+      flashToast("Success!", "Document added successfully", ToastState.Success);
     } else {
       flashToast();
     }
@@ -246,7 +270,7 @@
 
     let sourceName = getFileNameWithoutExtensionAndTimeStamp(event.detail).trim();
 
-    currentSource = await getSource(sourceName);
+    currentSource = (await getSource(sourceName)) as Source;
     showMessageSourceModal = true;
 
     isLoading = false;
@@ -277,12 +301,7 @@
 
 <main class="pb-5">
   {#if showToast}
-    <Toast
-      bind:title={toastMessage.title}
-      bind:body={toastMessage.body}
-      bind:state={toastMessage.state}
-      on:toastOnClose={onToastClose}
-    />
+    <Toast bind:toastMessage on:toastOnClose={onToastClose} />
   {/if}
 
   {#if showAddDocumentForm}
@@ -294,8 +313,7 @@
 
   {#if showMessageSourceModal}
     <MessageSourceModal
-      title={currentSource.source}
-      body={currentSource.page_content}
+      source={currentSource}
       on:messageSourceModalOnClose={onMessageSourceModalClose}
     />
   {/if}
@@ -317,26 +335,13 @@
     {#each messages as message, i}
       <li>
         {#if message.isUserMessage}
-          <ChatMessage
-            isUserMessage={message.isUserMessage}
-            author={message.author}
-            message={message.body}
-            date={message.date}
-          />
+          <ChatMessageComponent {message} />
         {:else if message.body}
-          <ChatMessage
-            isUserMessage={message.isUserMessage}
-            author={message.author}
-            message={message.body}
-            date={message.date}
-            on:chatMessageOnSourceClick={onSourceClick}
-          />
+          <ChatMessageComponent {message} on:chatMessageOnSourceClick={onSourceClick} />
         {:else}
-          <ChatMessage
-            isUserMessage={false}
-            author={message.author}
-            message={message.body}
-            date={message.date}
+          <ChatMessageComponent
+            {message}
+            isUserMessageOverwrite={false}
             isLoading={true}
             on:chatMessageOnSourceClick={onSourceClick}
           />

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
 
+  import type { InputCommand } from "./appTypes";
+
   import { checkIfStringIsCommand, debounce } from "./utils";
 
-  export let inputCommands = [];
+  export let inputCommands: Array<InputCommand> = [];
   export let currentPrompt = "";
   export let isLoading = false;
 
@@ -47,7 +49,7 @@
     }
   }
 
-  function selectCommand(command): void {
+  function selectCommand(command: InputCommand): void {
     currentPrompt = `${command.label} `;
     showCommands = false;
     inputReference.focus();

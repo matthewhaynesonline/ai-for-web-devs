@@ -2,14 +2,18 @@
   import { createEventDispatcher } from "svelte";
   import showdown from "showdown";
 
+  import type { ChatMessage } from "./appTypes";
+
   import ChatMessageSources from "./ChatMessageSources.svelte";
   import LoadingDots from "./LoadingDots.svelte";
 
+  export let message: ChatMessage;
+  export let isUserMessageOverwrite: boolean | null = null;
   export let isLoading = false;
-  export let isUserMessage = false;
-  export let author;
-  export let message;
-  export let date;
+
+  if (isUserMessageOverwrite) {
+    message.isUserMessage = isUserMessageOverwrite;
+  }
 
   const dispatch = createEventDispatcher();
   const showDownConverter = new showdown.Converter();
@@ -17,19 +21,19 @@
   let alertCssClass = "alert-primary";
   let messageCssClass = "message--user";
 
-  if (!isUserMessage) {
+  if (!message.isUserMessage) {
     alertCssClass = "alert-light";
     messageCssClass = "message--app";
   }
 
-  let processedMessage = "";
-  let sources = [];
+  let processedMessageBody = "";
+  let sources: Array<string> = [];
 
-  $: if (message) {
-    const [rawMessage, rawSources] = message.split("SOURCES:");
+  $: if (message.body) {
+    const [rawMessage, rawSources] = message.body.split("SOURCES:");
 
-    message = rawMessage.replace("Response:", "");
-    processedMessage = showDownConverter.makeHtml(message);
+    message.body = rawMessage.replace("Response:", "");
+    processedMessageBody = showDownConverter.makeHtml(message.body);
 
     if (rawSources) {
       sources = rawSources.split(",");
@@ -44,10 +48,10 @@
 <div class="message-wrapper d-inline-block">
   <div class="alert {alertCssClass} message {messageCssClass}">
     <h6 class="alert-heading">
-      {author}
-      {#if date}
+      {message.author}
+      {#if message.date}
         <small class="text-body-secondary float-end">
-          {new Date(date).toLocaleTimeString()}
+          {new Date(message.date).toLocaleTimeString()}
         </small>
       {/if}
     </h6>
@@ -55,7 +59,7 @@
     {#if isLoading}
       <LoadingDots />
     {:else}
-      {@html processedMessage}
+      {@html processedMessageBody}
     {/if}
 
     {#if sources?.length}

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import type { Source } from "./appTypes";
 
-  export let title = "";
-  export let body = "";
+  export let source: Source;
 
   const dispatch = createEventDispatcher();
 
@@ -24,10 +24,10 @@
       <div class="modal-body">
         <figure>
           <blockquote class="blockquote">
-            <p>{body}</p>
+            <p>{source.page_content}</p>
           </blockquote>
           <figcaption class="blockquote-footer">
-            <cite title="Source Title">{title}</cite>
+            <cite title="Source Title">{source.source}</cite>
           </figcaption>
         </figure>
       </div>

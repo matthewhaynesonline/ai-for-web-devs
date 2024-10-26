@@ -1,9 +1,9 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
 
-  export let title = "";
-  export let body = "";
-  export let state = "danger";
+  import type { ToastMessage } from "./appTypes";
+
+  export let toastMessage: ToastMessage;
 
   const dispatch = createEventDispatcher();
 
@@ -13,14 +13,14 @@
 </script>
 
 <div class="toast show" role="alert">
-  <div class="toast-header text-bg-{state}">
-    <strong class="me-auto">{title}</strong>
+  <div class="toast-header text-bg-{toastMessage.state}">
+    <strong class="me-auto">{toastMessage.title}</strong>
     <button type="button" class="btn-close" aria-label="Close" on:click={onClose}>
     </button>
   </div>
 
   <div class="toast-body">
-    {body}
+    {toastMessage.body}
   </div>
 </div>
 
