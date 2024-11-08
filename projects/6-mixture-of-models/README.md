@@ -48,6 +48,26 @@ _https://ollama.com/library_
 
 - `sudo chown -R $USER:$USER ./`
 
+## MOM Diagram
+
+```mermaid
+flowchart TD
+    A[Image Message Path] --> B[Image Model: Pipeline]
+    B --> C[Image Response]
+
+    D[Default Message Path] --> E{Small LLM: Classifier}
+    E -- Needs Image --> F[Large LLM: Image Prompt from User Message]
+    E -- Needs Text --> H[Large LLM: Text Response]
+    F --> B
+```
+
 ## Resources
 
--
+- [Mixture of Experts](https://huggingface.co/blog/moe)
+- [Multimodal Models](https://huggingface.co/learn/computer-vision-course/en/unit4/multimodal-models/tasks-models-part1)
+- [Chameleon Models](https://huggingface.co/facebook/chameleon-7b)
+- [Chameleon Paper](https://arxiv.org/pdf/2405.09818)
+- [Oasis (Minecraft) Model](https://oasis-model.github.io/)
+- [Llama 3.2](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)
+- [llama.cpp server docs (response format)](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md)
+- [OpenAI Sturctured Outputs](https://openai.com/index/introducing-structured-outputs-in-the-api/)
