@@ -1,0 +1,19 @@
+.vscode
+volumes/*
+.env
+
+app/content/*.txt
+
+app/logs/*
+
+app/static/generated-images/*
+!app/static/generated-images/.gitkeep
+
+models/*
+!models/.gitkeep
+
+# https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
