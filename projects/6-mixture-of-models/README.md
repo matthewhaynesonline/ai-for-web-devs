@@ -1,5 +1,18 @@
 # AI for Web Devs 6: Mixture of Models
 
+## FAQs:
+
+- Why two different language models?
+  - The larger model could do everything, but I wanted the classification step to happen as quick as possible. Using a smaller model is noticeably quicker.
+  - Also, right now, llama.cpp can't hot swap models, so they're run in parallel instances
+- Why classification instead of regex or string matching?
+  - It's true classification vs something like regex is pretty heavy handed for this, however, I was surprised at how quick the classification was, all things considered, and I think classification is the more powerful approach so I wanted to explore it (going back to the experimentation goal)
+- What about MoE?
+  - I'm actually going to revisit this. I found the phi MoE family a bit lack luster when I tried them, but maybe a different family would be more compelling or maybe I just need to look at phi more.
+  - On paper MoE should be the way to go, and would be more memory efficient, though in my setup adding the smaller LLM didn't didn't make or break my VRAM limits
+- Why SD 1.5?
+  - Good enough for testing purposes and LCM makes it very quick for image gen (compared to say Flux)
+
 ## First time setup
 
 ### Project
@@ -48,7 +61,7 @@ _https://ollama.com/library_
 
 - `sudo chown -R $USER:$USER ./`
 
-## MOM Diagram
+## MoM Diagram
 
 ```mermaid
 flowchart TD
