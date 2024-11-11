@@ -7,8 +7,11 @@
   - Also, right now, llama.cpp can't hot swap models, so they're run in parallel instances
 - Why classification instead of regex or string matching?
   - It's true classification vs something like regex is pretty heavy handed for this, however, I was surprised at how quick the classification was, all things considered, and I think classification is the more powerful approach so I wanted to explore it (going back to the experimentation goal)
+- Why not BERT for text classification?
+  - I'm planning on revisiting this
+  - BERT would probably be the best set of trade offs, with regex being on one end of the spectrum and an llm on the other, but in my case the small llm was fast enough to not impact the UX and I also didn't have to worry about fine tuning with a dataset (the LLM was ready to go)
 - What about MoE?
-  - I'm actually going to revisit this. I found the phi MoE family a bit lack luster when I tried them, but maybe a different family would be more compelling or maybe I just need to look at phi more.
+  - I'm planning on revisiting this as well. I found the phi MoE family a bit lack luster when I tried them, but maybe a different family would be more compelling or maybe I just need to look at phi more.
   - On paper MoE should be the way to go, and would be more memory efficient, though in my setup adding the smaller LLM didn't didn't make or break my VRAM limits
 - Why SD 1.5?
   - Good enough for testing purposes and LCM makes it very quick for image gen (compared to say Flux)
