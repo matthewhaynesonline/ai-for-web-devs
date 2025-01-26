@@ -2,8 +2,6 @@ from datetime import datetime, timezone
 from enum import Enum as StandardEnum
 from uuid import uuid4, UUID
 
-from typing import Dict, List, Optional, Tuple
-
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, MappedAsDataclass, mapped_column, relationship
 
@@ -52,7 +50,7 @@ class TimestampMixin:
 
 def get_uuid_timestamps(
     record, encode_values: bool = True
-) -> Tuple[UUID | str, datetime | str, datetime | str]:
+) -> tuple[UUID | str, datetime | str, datetime | str]:
     uuid = record.uuid
     created_at = record.created_at
     updated_at = record.updated_at
@@ -78,7 +76,7 @@ def get_teaser_text(content: str, max_number_of_words: int = 50) -> str:
     return teaser
 
 
-def convert_chat_message_to_llm_format(role: str, content: str) -> Dict[str, str]:
+def convert_chat_message_to_llm_format(role: str, content: str) -> dict[str, str]:
     return {
         "role": role,
         "content": content,
@@ -87,7 +85,7 @@ def convert_chat_message_to_llm_format(role: str, content: str) -> Dict[str, str
 
 def chat_messages_as_llm_format(
     chat, assistant_role_value, use_summary: bool = False, exclude_media: bool = True
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     if exclude_media:
         messages = [
             chat_message.as_llm_format()
@@ -153,21 +151,21 @@ class User(BaseModel):
         String(50), default=None, nullable=False, unique=True
     )
 
-    chats: Mapped[List["Chat"]] = relationship(
+    chats: Mapped[list["Chat"]] = relationship(
         back_populates="users",
         default_factory=list,
         secondary="chat_users",
         repr=False,
     )
 
-    chat_messages: Mapped[List["ChatMessage"]] = relationship(
+    chat_messages: Mapped[list["ChatMessage"]] = relationship(
         back_populates="user",
         default_factory=list,
         order_by="ChatMessage.id",
         repr=False,
     )
 
-    generated_medias: Mapped[List["GeneratedMedia"]] = relationship(
+    generated_medias: Mapped[list["GeneratedMedia"]] = relationship(
         back_populates="user",
         default_factory=list,
         order_by="GeneratedMedia.id",
@@ -177,7 +175,7 @@ class User(BaseModel):
     def __repr__(self) -> str:
         return f"<User {self.username}({self.id})>"
 
-    def to_dict(self, encode_values: bool = True) -> Dict:
+    def to_dict(self, encode_values: bool = True) -> dict:
         uuid, created_at, updated_at = get_uuid_timestamps(
             record=self, encode_values=encode_values
         )
@@ -200,13 +198,13 @@ class User(BaseModel):
 class Chat(BaseModel):
     __tablename__ = "chats"
 
-    title: Mapped[Optional[str]] = mapped_column(default=None)
+    title: Mapped[str | None] = mapped_column(default=None)
 
-    users: Mapped[List["User"]] = relationship(
+    users: Mapped[list["User"]] = relationship(
         back_populates="chats", default_factory=list, secondary="chat_users", repr=False
     )
 
-    chat_messages: Mapped[List["ChatMessage"]] = relationship(
+    chat_messages: Mapped[list["ChatMessage"]] = relationship(
         back_populates="chat",
         default_factory=list,
         order_by="ChatMessage.id",
@@ -223,7 +221,7 @@ class Chat(BaseModel):
 
     def messages_as_llm_format(
         self, use_summary: bool = False, exclude_media: bool = True
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         return chat_messages_as_llm_format(
             chat=self,
             assistant_role_value=ChatMessageRole.ASSISTANT.value,
@@ -233,7 +231,7 @@ class Chat(BaseModel):
 
     def to_dict(
         self, encode_values: bool = True, include_chat_summary: bool = False
-    ) -> Dict:
+    ) -> dict:
         uuid, created_at, updated_at = get_uuid_timestamps(
             record=self, encode_values=encode_values
         )
@@ -293,7 +291,7 @@ class ChatMessage(BaseModel):
     @classmethod
     def convert_chat_message_to_llm_format(
         cls, role: str, content: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         return convert_chat_message_to_llm_format(role=role, content=content)
 
     __tablename__ = "chat_messages"
@@ -319,8 +317,8 @@ class ChatMessage(BaseModel):
         repr=False,
     )
 
-    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), default=None)
-    user: Mapped[Optional["User"]] = relationship(
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)
+    user: Mapped["User | None"] = relationship(
         back_populates="chat_messages",
         default=None,
         foreign_keys=[user_id],
@@ -332,10 +330,10 @@ class ChatMessage(BaseModel):
         back_populates="last_message", default=None, repr=False
     )
 
-    generated_media_id: Mapped[Optional[int]] = mapped_column(
+    generated_media_id: Mapped[int | None] = mapped_column(
         ForeignKey("generated_medias.id"), default=None
     )
-    generated_media: Mapped[Optional["GeneratedMedia"]] = relationship(
+    generated_media: Mapped["GeneratedMedia | None"] = relationship(
         back_populates="chat_message",
         default=None,
         foreign_keys=[generated_media_id],
@@ -357,14 +355,14 @@ class ChatMessage(BaseModel):
     def __repr__(self) -> str:
         return f"<ChatMessage {self.id}>"
 
-    def as_llm_format(self) -> Dict[str, str]:
+    def as_llm_format(self) -> dict[str, str]:
         return self.convert_chat_message_to_llm_format(
             role=self.role.value, content=self.content
         )
 
     def to_dict(
         self, encode_values: bool = True, include_metadata: bool = False
-    ) -> Dict:
+    ) -> dict:
         uuid, created_at, updated_at = get_uuid_timestamps(
             record=self, encode_values=encode_values
         )
@@ -428,7 +426,7 @@ class ChatSummary(BaseModel):
 
     def to_dict(
         self, encode_values: bool = True, include_metadata: bool = False
-    ) -> Dict:
+    ) -> dict:
         data = {
             "content": self.content,
         }
@@ -471,10 +469,10 @@ class GeneratedMedia(BaseModel):
     filename: Mapped[str] = mapped_column(default=None)
     prompt: Mapped[str] = mapped_column(default=None, nullable=False)
 
-    user_id: Mapped[Optional[int]] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), default=None, use_existing_column=True
     )
-    user: Mapped[Optional["User"]] = relationship(
+    user: Mapped["User | None"] = relationship(
         back_populates="generated_medias",
         default=None,
         foreign_keys=[user_id],
@@ -490,7 +488,7 @@ class GeneratedMedia(BaseModel):
 
     def to_dict(
         self, encode_values: bool = True, include_metadata: bool = False
-    ) -> Dict:
+    ) -> dict:
         uuid, created_at, updated_at = get_uuid_timestamps(
             record=self, encode_values=encode_values
         )

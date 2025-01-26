@@ -1,5 +1,3 @@
-from typing import List
-
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -203,7 +201,7 @@ class ChatManager:
     def _exists(self, model_class: object) -> bool:
         return db.session.execute(select(model_class).limit(1)).scalar() is not None
 
-    def _save_to_db(self, objects: object | List[object]) -> None:
+    def _save_to_db(self, objects: object | list[object]) -> None:
         try:
             if isinstance(objects, list):
                 db.session.add_all(objects)

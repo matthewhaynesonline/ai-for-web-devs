@@ -1,10 +1,9 @@
 import json
 import os
 
-
+from collections.abc import Generator
 from functools import cached_property
 from pathlib import Path
-from typing import Dict, Generator, List, Optional
 
 from jinja2 import Template
 
@@ -64,7 +63,7 @@ class AppLlm:
     # Classifier
     ############
     @cached_property
-    def classifier_response_format(self) -> Dict:
+    def classifier_response_format(self) -> dict:
         fields = ResponseTypesFlags.__annotations__.keys()
 
         properties = {field: {"title": field, "type": "boolean"} for field in fields}
@@ -79,7 +78,7 @@ class AppLlm:
 
         return response_format
 
-    def classify_message(self, message: str = "") -> Optional[ResponseTypesFlags]:
+    def classify_message(self, message: str = "") -> ResponseTypesFlags | None:
         system_prompt_override = "You are a helpful assistant designed to output JSON."
 
         message = self.prompt_templates["message_classifier"]["template"].render(
@@ -126,7 +125,7 @@ class AppLlm:
     # LLM Calls
     ############
     def get_llm_response_stream(
-        self, messages: List[dict], use_rag: bool = True
+        self, messages: list[dict], use_rag: bool = True
     ) -> Generator[str, None, None]:
         if use_rag:
             messages = self.render_last_message_with_rag_prompt(messages=messages)
@@ -147,7 +146,7 @@ class AppLlm:
 
             yield response_content
 
-    def get_chat_summary(self, chat_messages: List) -> str:
+    def get_chat_summary(self, chat_messages: list) -> str:
         chat_summary_prompt = self.prompt_templates["chat_summary"]["template"].render(
             {"chat_messages": chat_messages}
         )
@@ -160,7 +159,7 @@ class AppLlm:
         return response_content
 
     def get_llm_response_for_single_message(
-        self, content: str = "", system_prompt_override: Optional[str] = None
+        self, content: str = "", system_prompt_override: str | None = None
     ) -> str:
         system_prompt = system_prompt_override or self.system_prompt
 
@@ -191,7 +190,7 @@ class AppLlm:
 
         return chat_prompt
 
-    def get_relevant_context(self, input: str, max_number_of_docs: int = 3) -> List:
+    def get_relevant_context(self, input: str, max_number_of_docs: int = 3) -> list:
         query_response = self.content_store.query(text=input, size=max_number_of_docs)
 
         context = []
@@ -207,7 +206,7 @@ class AppLlm:
 
         return context
 
-    def render_last_message_with_rag_prompt(self, messages: List[dict]) -> List[dict]:
+    def render_last_message_with_rag_prompt(self, messages: list[dict]) -> list[dict]:
         if messages[-1]["role"] != ChatMessageRole.USER.value:
             # this shouldn't happen
             raise

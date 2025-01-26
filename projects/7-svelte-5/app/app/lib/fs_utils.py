@@ -2,8 +2,6 @@ import os
 import re
 import time
 
-from typing import Tuple
-
 
 def save_document_to_disk(directory_path: str, title: str, body: str) -> str:
     document_file_name = get_safe_file_name(title)
@@ -44,7 +42,7 @@ def strip_non_alpha_characters(input: str, replacement_character: str = "_") -> 
     return output
 
 
-def delete_file(filepath: str) -> Tuple[bool, str | None]:
+def delete_file(filepath: str) -> tuple[bool, str | None]:
     file_was_deleted = False
     warning_message = None
 

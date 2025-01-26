@@ -1,8 +1,6 @@
 import uuid
 
 from dataclasses import dataclass
-from functools import cached_property
-from typing import Dict, List, Tuple
 
 from langchain_core.documents import Document
 from opensearchpy import OpenSearch
@@ -15,7 +13,7 @@ from app.services.embedding_service import EmbeddingService
 class OpenSearchConfig:
     hostname: str
     port: str
-    auth: Tuple[str, str]
+    auth: tuple[str, str]
     use_ssl: bool = True
     verify_certs: bool = False
 
@@ -54,12 +52,7 @@ class ContentStore:
         self.data_loader = DataLoader(content_dir)
         self.embedding_service = embedding_service
         self.search_client = self.initialize_search_client(config=search_config)
-
-        self.ensure_search_setup()
-
-    @cached_property
-    def index_settings(self) -> Dict:
-        return {
+        self.index_settings = {
             "settings": {"index": {"number_of_shards": 4}, "index.knn": True},
             "mappings": {
                 "properties": {
@@ -70,6 +63,8 @@ class ContentStore:
                 }
             },
         }
+
+        self.ensure_search_setup()
 
     ########
     # Setup
@@ -129,7 +124,7 @@ class ContentStore:
         documents = self.data_loader.load_documents_from_disk()
         self.load_documents_into_index(documents)
 
-    def load_documents_into_index(self, documents: List[Document]) -> None:
+    def load_documents_into_index(self, documents: list[Document]) -> None:
         for document in documents:
             # Todo: use bulk upload
             search_body = document.dict()
@@ -160,10 +155,10 @@ class ContentStore:
     ########
     # Search
     ########
-    def query(self, text: str, size: int = 3) -> List:
+    def query(self, text: str, size: int = 3) -> list:
         return self.hybrid_query(text=text, size=size)
 
-    def hybrid_query(self, text: str, size: int = 3) -> List:
+    def hybrid_query(self, text: str, size: int = 3) -> list:
         query_embeddings = self.embedding_service.get_embeddings(text)
 
         search_query = self.BASE_SEARCH_QUERY.copy()
@@ -196,7 +191,7 @@ class ContentStore:
 
         return results["hits"]["hits"]
 
-    def keyword_query(self, text: str, size: int = 3) -> List:
+    def keyword_query(self, text: str, size: int = 3) -> list:
         search_query = self.BASE_SEARCH_QUERY.copy()
         search_query.update(
             {"size": size, "query": {"match": {"page_content": {"query": text}}}}
@@ -206,7 +201,7 @@ class ContentStore:
 
         return results["hits"]["hits"]
 
-    def vector_query(self, text: str, size: int = 3) -> List:
+    def vector_query(self, text: str, size: int = 3) -> list:
         query_embeddings = self.embedding_service.get_embeddings(text)
 
         search_query = self.BASE_SEARCH_QUERY.copy()
@@ -228,7 +223,7 @@ class ContentStore:
 
         return results["hits"]["hits"]
 
-    def find_document(self, query: str) -> Dict:
+    def find_document(self, query: str) -> dict:
         search_query = self.BASE_SEARCH_QUERY.copy()
         search_query.update(
             {"size": 1, "query": {"wildcard": {"metadata.source": f"*{query}*"}}}

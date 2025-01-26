@@ -1,5 +1,3 @@
-from typing import List
-
 import httpx
 
 
@@ -28,7 +26,7 @@ class EmbeddingService:
 
         return embedding_model_dimensions
 
-    def get_embeddings(self, embedding_input: str) -> List:
+    def get_embeddings(self, embedding_input: str) -> list:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",

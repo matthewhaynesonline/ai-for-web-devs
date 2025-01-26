@@ -1,6 +1,6 @@
 import json
 
-from typing import List, Dict, Generator, Optional
+from collections.abc import Generator
 
 import httpx
 
@@ -24,12 +24,12 @@ class LlmHttpClient:
 
     def get_llm_response(
         self,
-        messages: List[Dict],
-        system_prompt_override: Optional[str] = None,
-        response_format: Optional[Dict] = None,
+        messages: list[dict],
+        system_prompt_override: str | None = None,
+        response_format: dict | None = None,
         return_parsed_content: bool = True,
-        inference_api_url_override: Optional[str] = None,
-    ) -> Optional[Dict | str]:
+        inference_api_url_override: str | None = None,
+    ) -> dict | str | None:
         headers, body = self.prepare_request(
             messages=messages,
             system_prompt_override=system_prompt_override,
@@ -53,11 +53,11 @@ class LlmHttpClient:
 
     def get_llm_response_stream(
         self,
-        messages: List[Dict],
-        system_prompt_override: Optional[str] = None,
+        messages: list[dict],
+        system_prompt_override: str | None = None,
         return_parsed_content: bool = True,
-        inference_api_url_override: Optional[str] = None,
-    ) -> Generator[Optional[Dict | str], None, None]:
+        inference_api_url_override: str | None = None,
+    ) -> Generator[dict | str | None, None, None]:
         headers, body = self.prepare_request(
             messages=messages,
             system_prompt_override=system_prompt_override,
@@ -92,9 +92,9 @@ class LlmHttpClient:
 
     def prepare_request(
         self,
-        messages: List[Dict],
-        system_prompt_override: Optional[str] = None,
-        response_format: Optional[Dict] = None,
+        messages: list[dict],
+        system_prompt_override: str | None = None,
+        response_format: dict | None = None,
         stream: bool = False,
     ) -> tuple:
         headers = {
@@ -124,7 +124,7 @@ class LlmHttpClient:
         return headers, body
 
     @staticmethod
-    def parse_server_sent_event_response(response) -> Optional[dict]:
+    def parse_server_sent_event_response(response) -> dict | None:
         parsed_response = None
 
         response = response.strip("\n").strip("\r")
@@ -144,8 +144,8 @@ class LlmHttpClient:
 
     @staticmethod
     def extract_content_from_response(
-        response: Dict, is_stream: bool = False
-    ) -> Optional[str]:
+        response: dict, is_stream: bool = False
+    ) -> str | None:
         response_content = None
 
         content_param_name = "message"

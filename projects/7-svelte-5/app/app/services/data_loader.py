@@ -1,5 +1,3 @@
-from typing import List
-
 from langchain_core.documents import Document
 
 from langchain_community.document_loaders import DirectoryLoader
@@ -18,13 +16,13 @@ class DataLoader:
             chunk_size=1000, chunk_overlap=2
         )
 
-    def load_documents_from_disk(self) -> List[Document]:
+    def load_documents_from_disk(self) -> list[Document]:
         documents = self.directory_loader.load()
         documents = self.text_splitter.split_documents(documents)
 
         return documents
 
-    def load_document_from_disk(self, document_file_path: str) -> List[Document]:
+    def load_document_from_disk(self, document_file_path: str) -> list[Document]:
         text_loader = TextLoader(document_file_path)
         document = text_loader.load()
         documents = self.text_splitter.split_documents(document)

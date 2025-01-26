@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 # from enum import Enum as StandardEnum
-# from typing import List
-
 
 # Tried to dynamically generate the dataclass from the enum
 # but in the end it wasn't worth it, since in order to get
@@ -23,7 +21,7 @@ from dataclasses import dataclass
 #     # VIDEO = "video"
 
 #     @classmethod
-#     def values(cls) -> List[str]:
+#     def values(cls) -> list[str]:
 #         return [type.value for type in cls]
 
 #     # @classmethod
