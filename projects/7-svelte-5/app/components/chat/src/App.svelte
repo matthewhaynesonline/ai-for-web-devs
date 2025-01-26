@@ -2,18 +2,16 @@
   import { onMount } from "svelte";
 
   import {
-    BackendChatMessageRole,
-    ChatMessageAuthor,
+    ChatMessageState,
     ToastState,
+    defaultChat,
+    defaultChatMessage,
+    defaultToastMessage,
+    defaultSource,
+    ChatMessageRole,
   } from "./lib/appTypes";
 
-  import type {
-    BackendChatState,
-    ChatMessage,
-    ToastMessage,
-    Source,
-    InputCommand,
-  } from "./lib/appTypes";
+  import type { Chat, ToastMessage, Source, InputCommand } from "./lib/appTypes";
 
   import {
     checkIfStringIsCommand,
@@ -30,12 +28,9 @@
   import Toast from "./lib/Toast.svelte";
 
   interface Props {
-    initialChatState: BackendChatState;
+    initialChatState: Chat;
   }
-
   let { initialChatState }: Props = $props();
-
-  let aborter = new AbortController();
 
   const inputCommands: InputCommand[] = [
     {
@@ -46,6 +41,8 @@
     },
   ];
 
+  let aborter = new AbortController();
+
   let isLoading = $state(false);
   let showAddDocumentForm = $state(false);
   let showMessageSourceModal = $state(false);
@@ -54,52 +51,15 @@
   const defaultPrompt = "";
   let currentPrompt = $state(defaultPrompt);
 
-  const defaultMessages: Array<ChatMessage> = [];
-  let messages = $state(structuredClone(defaultMessages));
-
-  const userAuthor = ChatMessageAuthor.User;
-  const defaultChatMessage: ChatMessage = {
-    content: "",
-    author: ChatMessageAuthor.System,
-    date: null,
-    isUserMessage: false,
-  };
-
-  const defaultToastMessage: ToastMessage = {
-    title: "",
-    content: "",
-    state: ToastState.Danger,
-  };
+  let chat = $state(structuredClone(initialChatState));
+  let lastChatMessageIndex = $derived(chat.chat_messages.length - 1);
 
   let toastMessage: ToastMessage = $state(structuredClone(defaultToastMessage));
-
-  let defaultSource: Source = {
-    source: "",
-    page_content: "",
-  };
-
   let currentSource: Source = $state(structuredClone(defaultSource));
 
   /**
    * Utils
    */
-  function setChatMessageFromInitialState(): void {
-    initialChatState?.chat_messages.forEach((message) => {
-      let newMessage = structuredClone(defaultChatMessage);
-      newMessage.content = message.content;
-      newMessage.date = new Date(message.created_at);
-
-      if (message.role === BackendChatMessageRole.User) {
-        newMessage.author = userAuthor;
-        newMessage.isUserMessage = true;
-      }
-
-      messages.push(newMessage);
-    });
-
-    refreshMessages();
-  }
-
   function refreshMessages(): void {
     scrollToBottom();
   }
@@ -108,7 +68,7 @@
    * Lifecycle
    */
   onMount(() => {
-    setChatMessageFromInitialState();
+    refreshMessages();
   });
 
   /**
@@ -121,12 +81,9 @@
     aborter.abort();
     aborter = new AbortController();
 
-    messages.push({
-      content: currentPrompt,
-      author: userAuthor,
-      date: Date.now(),
-      isUserMessage: true,
-    });
+    let newUserMessage = structuredClone(defaultChatMessage);
+    newUserMessage.content = currentPrompt;
+    chat.chat_messages.push(newUserMessage);
 
     let shouldRunCommand = checkIfStringIsCommand(currentPrompt);
 
@@ -136,9 +93,12 @@
 
     currentPrompt = defaultPrompt;
 
-    refreshMessages();
+    let newAssistantMessage = structuredClone(defaultChatMessage);
+    newAssistantMessage.role = ChatMessageRole.Assistant;
+    newAssistantMessage.state = ChatMessageState.Pending;
+    chat.chat_messages.push(newAssistantMessage);
 
-    messages.push(structuredClone(defaultChatMessage));
+    refreshMessages();
 
     if (shouldRunCommand) {
       for (const command of inputCommands) {
@@ -188,10 +148,13 @@
           const text = new TextDecoder().decode(value);
 
           if (firstTokenLoadedAlreadyLoaded) {
-            messages[messages.length - 1].content += text;
+            chat.chat_messages[lastChatMessageIndex].content += text;
           } else {
-            messages[messages.length - 1].content = text;
-            messages[messages.length - 1].date = Date.now();
+            chat.chat_messages[lastChatMessageIndex].state = ChatMessageState.Ready;
+            chat.chat_messages[lastChatMessageIndex].content = text;
+            chat.chat_messages[lastChatMessageIndex].created_at = new Date(
+              Date.now(),
+            ).toISOString();
 
             firstTokenLoadedAlreadyLoaded = true;
           }
@@ -206,8 +169,11 @@
 
   async function addMessageFromResponse(response) {
     const responseData = await response.json();
-    messages[messages.length - 1].content = responseData.output;
-    messages[messages.length - 1].date = Date.now();
+    chat.chat_messages[lastChatMessageIndex].content = responseData.output;
+    chat.chat_messages[lastChatMessageIndex].state = ChatMessageState.Ready;
+    chat.chat_messages[lastChatMessageIndex].created_at = new Date(
+      Date.now(),
+    ).toISOString();
     refreshMessages();
   }
 
@@ -222,7 +188,7 @@
     flashToast("Success!", "Chat cleared!", ToastState.Info);
 
     currentPrompt = defaultPrompt;
-    messages = structuredClone(defaultMessages);
+    chat = structuredClone(defaultChat);
 
     refreshMessages();
   }
@@ -350,20 +316,9 @@
   </div>
 
   <ul class="list-unstyled">
-    {#each messages as message, i}
+    {#each chat.chat_messages as chatMessage, i}
       <li>
-        {#if message.isUserMessage}
-          <ChatMessageComponent {message} />
-        {:else if message.content}
-          <ChatMessageComponent {message} {onSourceClick} />
-        {:else}
-          <ChatMessageComponent
-            {message}
-            isUserMessageOverwrite={false}
-            isLoading={true}
-            {onSourceClick}
-          />
-        {/if}
+        <ChatMessageComponent {chatMessage} {onSourceClick} />
       </li>
     {/each}
   </ul>

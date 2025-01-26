@@ -17,7 +17,7 @@
       event.preventDefault();
       onSubmit({
         title: title,
-        content: content,
+        body: content,
       });
     }}
   >

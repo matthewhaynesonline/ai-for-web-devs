@@ -1,40 +1,53 @@
 <script lang="ts">
   import showdown from "showdown";
 
+  import { ChatMessageRole, ChatMessageState } from "./appTypes";
   import type { ChatMessage } from "./appTypes";
 
   import ChatMessageSources from "./ChatMessageSources.svelte";
   import LoadingDots from "./LoadingDots.svelte";
 
   interface Props {
-    message: ChatMessage;
-    isUserMessageOverwrite?: boolean | null;
-    isLoading?: boolean;
+    chatMessage: ChatMessage;
     onSourceClick?: Function;
   }
-
-  let {
-    message,
-    isUserMessageOverwrite = null,
-    isLoading = false,
-    onSourceClick,
-  }: Props = $props();
-
-  if (isUserMessageOverwrite) {
-    message.isUserMessage = isUserMessageOverwrite;
-  }
+  let { chatMessage, onSourceClick }: Props = $props();
 
   const showDownConverter = new showdown.Converter();
 
-  let alertCssClass = $state("alert-primary");
-  let messageCssClass = $state("message--user");
+  let author = $derived.by(() => {
+    let author = "🤖 MattGPT";
 
-  if (!message.isUserMessage) {
-    alertCssClass = "alert-light";
-    messageCssClass = "message--app";
-  }
+    if (chatMessage.role === ChatMessageRole.User) {
+      author = "You";
+    }
 
-  let rawMessage = $derived(message.content.split("SOURCES:")[0]);
+    return author;
+  });
+
+  let displayDate = $derived(new Date(chatMessage.created_at).toLocaleTimeString());
+
+  let alertCssClass = $derived.by(() => {
+    let alertCssClass = "alert-light";
+
+    if (chatMessage.role === ChatMessageRole.User) {
+      alertCssClass = "alert-primary";
+    }
+
+    return alertCssClass;
+  });
+
+  let chatMessageCssClass = $derived.by(() => {
+    let chatMessageCssClass = "message--assistant";
+
+    if (chatMessage.role === ChatMessageRole.User) {
+      chatMessageCssClass = "message--user";
+    }
+
+    return chatMessageCssClass;
+  });
+
+  let rawMessage = $derived(chatMessage.content.split("SOURCES:")[0]);
   let processedMessageBody = $derived.by(() => {
     let processedMessageBody = "";
 
@@ -46,7 +59,7 @@
     return processedMessageBody;
   });
 
-  let rawSources = $derived(message.content.split("SOURCES:")[1]);
+  let rawSources = $derived(chatMessage.content.split("SOURCES:")[1]);
   let sources = $derived.by(() => {
     let sources = [];
 
@@ -59,17 +72,15 @@
 </script>
 
 <div class="message-wrapper d-inline-block">
-  <div class="alert {alertCssClass} message {messageCssClass}">
+  <div class="alert {alertCssClass} message {chatMessageCssClass}">
     <h6 class="alert-heading">
-      {message.author}
-      {#if message.date}
-        <small class="text-body-secondary float-end">
-          {new Date(message.date).toLocaleTimeString()}
-        </small>
-      {/if}
+      {author}
+      <small class="text-body-secondary float-end">
+        {displayDate}
+      </small>
     </h6>
 
-    {#if isLoading}
+    {#if chatMessage.state === ChatMessageState.Pending}
       <LoadingDots />
     {:else}
       {@html processedMessageBody}
