@@ -101,10 +101,6 @@
   }
 
   function refreshMessages(): void {
-    // force svelte re-render
-    // https://svelte.dev/tutorial/updating-arrays-and-objects
-    messages = messages;
-
     scrollToBottom();
   }
 
@@ -145,9 +141,10 @@
     toastMessage = structuredClone(defaultToastMessage);
   }
 
-  async function onChatFormSubmit(event: Event): Promise<void> {
-    isLoading = true;
+  async function onChatFormSubmit(newPrompt: string): Promise<void> {
+    currentPrompt = newPrompt;
 
+    isLoading = true;
     aborter.abort();
     aborter = new AbortController();
 
@@ -245,12 +242,11 @@
     showAddDocumentForm = true;
   }
 
-  async function addDocumentFormSubmit(event: Event): Promise<void> {
+  async function addDocumentFormSubmit(newDocument: object): Promise<void> {
     showAddDocumentForm = false;
     isLoading = true;
 
     const endpointUrl = "/document";
-    const newDocument = event.detail;
 
     aborter.abort();
     aborter = new AbortController();
@@ -270,11 +266,10 @@
     showAddDocumentForm = false;
   }
 
-  async function onSourceClick(event: Event): Promise<void> {
+  async function onSourceClick(sourceName: string): Promise<void> {
     isLoading = true;
 
-    let sourceName = getFileNameWithoutExtensionAndTimeStamp(event.detail).trim();
-
+    sourceName = getFileNameWithoutExtensionAndTimeStamp(sourceName).trim();
     currentSource = (await getSource(sourceName)) as Source;
     showMessageSourceModal = true;
 
@@ -306,21 +301,18 @@
 
 <main class="pb-5">
   {#if showToast}
-    <Toast bind:toastMessage on:toastOnClose={onToastClose} />
+    <Toast {toastMessage} onClose={onToastClose} />
   {/if}
 
   {#if showAddDocumentForm}
     <AddDocumentForm
-      on:addDocumentFormOnSubmit={addDocumentFormSubmit}
-      on:addDocumentFormOnClose={onAddDocumentFormClose}
+      onSubmit={addDocumentFormSubmit}
+      onClose={onAddDocumentFormClose}
     />
   {/if}
 
   {#if showMessageSourceModal}
-    <MessageSourceModal
-      source={currentSource}
-      on:messageSourceModalOnClose={onMessageSourceModalClose}
-    />
+    <MessageSourceModal source={currentSource} onClose={onMessageSourceModalClose} />
   {/if}
 
   <div class="border-bottom border-dark-subtle mb-4 pb-3">
@@ -342,13 +334,13 @@
         {#if message.isUserMessage}
           <ChatMessageComponent {message} />
         {:else if message.body}
-          <ChatMessageComponent {message} on:chatMessageOnSourceClick={onSourceClick} />
+          <ChatMessageComponent {message} {onSourceClick} />
         {:else}
           <ChatMessageComponent
             {message}
             isUserMessageOverwrite={false}
             isLoading={true}
-            on:chatMessageOnSourceClick={onSourceClick}
+            {onSourceClick}
           />
         {/if}
       </li>
@@ -359,10 +351,10 @@
     <div class="container">
       <ChatForm
         {inputCommands}
-        bind:currentPrompt
-        bind:isLoading
-        on:chatFormOnSubmit={onChatFormSubmit}
-        on:chatFormOnAddDocumentClick={onChatAddDocumentClick}
+        {currentPrompt}
+        {isLoading}
+        onSubmit={onChatFormSubmit}
+        onAddDocumentClick={onChatAddDocumentClick}
       />
     </div>
   </div>

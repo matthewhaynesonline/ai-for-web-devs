@@ -1,27 +1,26 @@
 <script lang="ts">
-  import { preventDefault } from 'svelte/legacy';
+  interface Props {
+    onSubmit: Function;
+    onClose: Function;
+  }
 
-  import { createEventDispatcher } from "svelte";
+  let { onSubmit, onClose }: Props = $props();
 
   let title = $state("");
   let body = $state("");
-
-  const dispatch = createEventDispatcher();
-
-  function onSubmit(): void {
-    dispatch("addDocumentFormOnSubmit", {
-      title: title,
-      body: body,
-    });
-  }
-
-  function onClose(): void {
-    dispatch("addDocumentFormOnClose");
-  }
 </script>
 
 <div class="modal d-inline-block">
-  <form class="modal-dialog modal-dialog-centered" onsubmit={preventDefault(onSubmit)}>
+  <form
+    class="modal-dialog modal-dialog-centered"
+    onsubmit={(event) => {
+      event.preventDefault();
+      onSubmit({
+        title: title,
+        body: body,
+      });
+    }}
+  >
     <div class="modal-content">
       <div class="modal-header text-bg-dark">
         <h5 class="modal-title">Add a document to the model</h5>
@@ -56,7 +55,7 @@
             required
             rows="4"
             bind:value={body}
-></textarea>
+          ></textarea>
         </div>
       </div>
 

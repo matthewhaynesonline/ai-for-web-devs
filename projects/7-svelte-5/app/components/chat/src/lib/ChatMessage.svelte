@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
-
-  import { createEventDispatcher } from "svelte";
   import showdown from "showdown";
 
   import type { ChatMessage } from "./appTypes";
@@ -13,15 +10,20 @@
     message: ChatMessage;
     isUserMessageOverwrite?: boolean | null;
     isLoading?: boolean;
+    onSourceClick?: Function;
   }
 
-  let { message = $bindable(), isUserMessageOverwrite = null, isLoading = false }: Props = $props();
+  let {
+    message,
+    isUserMessageOverwrite = null,
+    isLoading = false,
+    onSourceClick,
+  }: Props = $props();
 
   if (isUserMessageOverwrite) {
     message.isUserMessage = isUserMessageOverwrite;
   }
 
-  const dispatch = createEventDispatcher();
   const showDownConverter = new showdown.Converter();
 
   let alertCssClass = $state("alert-primary");
@@ -32,25 +34,28 @@
     messageCssClass = "message--app";
   }
 
-  let processedMessageBody = $state("");
-  let sources: Array<string> = $state([]);
+  let rawMessage = $derived(message.body.split("SOURCES:")[0]);
+  let processedMessageBody = $derived.by(() => {
+    let processedMessageBody = "";
 
-  run(() => {
-    if (message.body) {
-      const [rawMessage, rawSources] = message.body.split("SOURCES:");
-
-      message.body = rawMessage.replace("Response:", "");
-      processedMessageBody = showDownConverter.makeHtml(message.body);
-
-      if (rawSources) {
-        sources = rawSources.split(",");
-      }
+    if (rawMessage) {
+      processedMessageBody = rawMessage.replace("Response:", "");
+      processedMessageBody = showDownConverter.makeHtml(processedMessageBody);
     }
+
+    return processedMessageBody;
   });
 
-  function onSourceClick(event: Event): void {
-    dispatch("chatMessageOnSourceClick", event.detail);
-  }
+  let rawSources = $derived(message.body.split("SOURCES:")[1]);
+  let sources = $derived.by(() => {
+    let sources = [];
+
+    if (rawSources) {
+      sources = rawSources.split(",");
+    }
+
+    return sources;
+  });
 </script>
 
 <div class="message-wrapper d-inline-block">
@@ -72,10 +77,7 @@
 
     {#if sources?.length}
       <div class="mt-3">
-        <ChatMessageSources
-          {sources}
-          on:chatMessageSourcesOnSourceClick={onSourceClick}
-        />
+        <ChatMessageSources {sources} {onSourceClick} />
       </div>
     {/if}
   </div>

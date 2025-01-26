@@ -1,8 +1,4 @@
 <script lang="ts">
-  import { preventDefault } from 'svelte/legacy';
-
-  import { createEventDispatcher } from "svelte";
-
   import type { InputCommand } from "./appTypes";
 
   import { checkIfStringIsCommand, debounce } from "./utils";
@@ -11,14 +7,20 @@
     inputCommands?: Array<InputCommand>;
     currentPrompt?: string;
     isLoading?: boolean;
+    onSubmit: Function;
+    onAddDocumentClick: Function;
   }
 
-  let { inputCommands = [], currentPrompt = $bindable(""), isLoading = false }: Props = $props();
+  let {
+    inputCommands = [],
+    currentPrompt = "",
+    isLoading = false,
+    onSubmit,
+    onAddDocumentClick,
+  }: Props = $props();
 
+  let inputReference;
   let showCommands = $state(false);
-  let inputReference = $state(null);
-
-  const dispatch = createEventDispatcher();
 
   function onKeydown(event: KeyboardEvent): void {
     const tabKeyWasNotPressed = event.key !== "Tab";
@@ -60,17 +62,16 @@
     showCommands = false;
     inputReference.focus();
   }
-
-  function onSubmit(): void {
-    dispatch("chatFormOnSubmit");
-  }
-
-  function onAddDocumentClick(): void {
-    dispatch("chatFormOnAddDocumentClick");
-  }
 </script>
 
-<form class="card" onsubmit={preventDefault(onSubmit)}>
+<form
+  class="card"
+  onsubmit={(event) => {
+    event.preventDefault();
+    showCommands = false;
+    onSubmit(currentPrompt);
+  }}
+>
   <div class="card-body">
     <div class="input-group">
       <input
@@ -78,12 +79,13 @@
         class="form-control"
         placeholder="Type '/' to see commands or enter a prompt, such as 'What is a cpu?'"
         required
+        spellcheck="true"
         autofocus
         disabled={isLoading}
-        bind:this={inputReference}
-        bind:value={currentPrompt}
         onkeydown={onKeydown}
         oninput={onInputDebounced}
+        bind:this={inputReference}
+        bind:value={currentPrompt}
       />
 
       {#if showCommands}
@@ -112,11 +114,7 @@
       {:else}
         <button type="submit" class="btn btn-success">Send</button>
 
-        <button
-          type="button"
-          class="btn btn-outline-dark"
-          onclick={onAddDocumentClick}
-        >
+        <button type="button" class="btn btn-outline-dark" onclick={onAddDocumentClick}>
           Add document
         </button>
       {/if}

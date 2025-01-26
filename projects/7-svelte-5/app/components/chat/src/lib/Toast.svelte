@@ -1,19 +1,12 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-
   import type { ToastMessage } from "./appTypes";
 
   interface Props {
     toastMessage: ToastMessage;
+    onClose: Function;
   }
 
-  let { toastMessage }: Props = $props();
-
-  const dispatch = createEventDispatcher();
-
-  function onClose(): void {
-    dispatch("toastOnClose");
-  }
+  let { toastMessage, onClose }: Props = $props();
 </script>
 
 <div class="toast show" role="alert">

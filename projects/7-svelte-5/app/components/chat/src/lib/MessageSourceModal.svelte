@@ -4,15 +4,10 @@
 
   interface Props {
     source: Source;
+    onClose: Function;
   }
 
-  let { source }: Props = $props();
-
-  const dispatch = createEventDispatcher();
-
-  function onClose(): void {
-    dispatch("messageSourceModalOnClose");
-  }
+  let { source, onClose }: Props = $props();
 </script>
 
 <div class="modal d-inline-block">
