@@ -1,24 +1,33 @@
 import os
 
 import torch
+
 from diffusers import (
     FluxPipeline,
-    StableDiffusionPipeline,
-    DPMSolverMultistepScheduler,
+    # StableDiffusionPipeline,
+    # DPMSolverMultistepScheduler,
     LCMScheduler,
     AutoPipelineForText2Image,
 )
 
-from services.fs_utils import get_safe_file_name
+from app.lib.fs_utils import get_safe_file_name
+
+
+class ImageGenStub:
+    TEST_IMAGE_FILENAME = "test.png"
+
+    def gen_image_from_prompt(self, prompt: str) -> str:
+        return self.TEST_IMAGE_FILENAME
 
 
 class ImageGen:
     def __init__(self, images_dir: str):
         self.images_dir = images_dir
+
         self.torch_dtype = torch.float16
 
         self.pipe_variant = "fp16"
-        self.bypass_safety_checker = True
+        self.bypass_safety_checker = False
         self.use_torch_compile = False
 
         if torch.cuda.is_available() and torch.cuda.is_bf16_supported():

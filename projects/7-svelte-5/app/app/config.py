@@ -4,12 +4,39 @@ import os
 class Config:
     APP_NAME = "MattGPT"
     APP_PORT = os.getenv("APP_PORT")
+    APP_SECRET_KEY = os.getenv("APP_SECRET_KEY")
     # Cast bool from env var
     # https://stackoverflow.com/a/65407083
     DEBUG = os.getenv("APP_DEBUG", "False").lower() in ("true", "1", "t")
-    CONTENT_DIR = os.path.dirname(__file__) + "/content"
-    STATIC_FILES_DIR = "static"
-    GENERATED_IMAGES_DIR = os.path.join(STATIC_FILES_DIR, "generated-images")
+
+    APP_USE_FLASH_ATTENTION = os.getenv("APP_USE_FLASH_ATTENTION", "False").lower() in (
+        "true",
+        "1",
+        "t",
+    )
+
+    FAKE_GENERATION = os.getenv("FAKE_GENERATION", "False").lower() in (
+        "true",
+        "1",
+        "t",
+    )
+
+    PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    CONTENT_DIR_NAME = "content"
+    CONTENT_DIR = os.path.join(PROJECT_DIR, CONTENT_DIR_NAME)
+
+    LOGS_DIR = os.path.join(PROJECT_DIR, "logs")
+    LOG_FILE = "app.log"
+
+    STATIC_FILES_DIR_NAME = "static"
+    STATIC_FILES_DIR = os.path.join(PROJECT_DIR, STATIC_FILES_DIR_NAME)
+
+    GENERATED_IMAGES_DIR_NAME = "generated-images"
+    GENERATED_IMAGES_DIR = os.path.join(STATIC_FILES_DIR, GENERATED_IMAGES_DIR_NAME)
+    GENERATED_IMAGES_DIR_URL_PATH = (
+        f"/{STATIC_FILES_DIR_NAME}/{GENERATED_IMAGES_DIR_NAME}"
+    )
 
     DB_ADAPTER = os.getenv("DB_ADAPTER")
     DB_HOSTNAME = os.getenv("DB_HOSTNAME")

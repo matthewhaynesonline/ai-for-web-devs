@@ -1,26 +1,19 @@
 import json
 import os
-import sys
 
 
 from functools import cached_property
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Type
+from typing import Dict, Generator, List, Optional
 
 from jinja2 import Template
 
-from services.app_logger import AppLogger
-from services.llm_http_client import LlmHttpClient
-from services.content_store import ContentStore
-from services.response_types import ResponseTypesFlags
+from app.models import ChatMessage, ChatMessageRole
 
-# TODO better way to do this (import from parent dir)?
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
-from models import ChatMessage, ChatMessageRole
+from app.services.app_logger import AppLogger
+from app.services.llm_http_client import LlmHttpClient
+from app.services.content_store import ContentStore
+from app.services.response_types import ResponseTypesFlags
 
 
 class AppLlm:
@@ -132,17 +125,6 @@ class AppLlm:
     ############
     # LLM Calls
     ############
-    def get_llm_response(self, input: str = "", use_rag: bool = True) -> str:
-        chat_prompt = input
-
-        if use_rag:
-            chat_prompt = self.get_rag_prompt(input)
-
-        self.log_llm_messages(caller="get_llm_response", messages=[chat_prompt])
-        response_content = self.get_llm_response_for_single_message(content=chat_prompt)
-
-        return response_content
-
     def get_llm_response_stream(
         self, messages: List[dict], use_rag: bool = True
     ) -> Generator[str, None, None]:
@@ -178,7 +160,7 @@ class AppLlm:
         return response_content
 
     def get_llm_response_for_single_message(
-        self, content: str, system_prompt_override: Optional[str] = None
+        self, content: str = "", system_prompt_override: Optional[str] = None
     ) -> str:
         system_prompt = system_prompt_override or self.system_prompt
 

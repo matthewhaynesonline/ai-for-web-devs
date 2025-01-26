@@ -11,7 +11,7 @@ CONTEXT:
 ----
 {% if chat_messages|length > 0 %}
 {% for chat_message in chat_messages -%}
-{{chat_message.role.value}}: "{{ chat_message.body }}"
+{{chat_message.role.value}}: "{{ chat_message.content }}"
 
 {% endfor -%}
 {% endif %}

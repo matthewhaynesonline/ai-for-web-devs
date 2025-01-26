@@ -82,7 +82,7 @@
   function setChatMessageFromInitialState(): void {
     initialChatState?.chat_messages.forEach((message) => {
       let newMessage = structuredClone(defaultChatMessage);
-      newMessage.body = message.body;
+      newMessage.body = message.content;
       newMessage.date = new Date(message.created_at);
 
       if (message.role === BackendChatMessageRole.User) {

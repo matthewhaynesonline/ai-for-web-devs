@@ -10,6 +10,6 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 
 
-def init_app(app):
+def db_init_app(app) -> None:
     db.init_app(app)
     Migrate(app, db)

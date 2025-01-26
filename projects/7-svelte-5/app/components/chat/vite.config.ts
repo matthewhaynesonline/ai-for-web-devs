@@ -1,13 +1,15 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
-// https://vitejs.dev/config/
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [svelte()],
-  // use these config options to make it work better with flask
-  // (consistent file names)
   build: {
+    // Output to flask static dir
+    outDir: "./../../app/static/components",
     rollupOptions: {
+      // Use these config options to make it work better with Flask
+      // so that it outputs consistent file names
       output: {
         entryFileNames: `assets/[name].js`,
         chunkFileNames: `assets/[name].js`,

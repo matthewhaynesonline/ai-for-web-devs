@@ -1,7 +1,7 @@
 import time
 import unittest
 
-from services.fs_utils import get_safe_file_name
+from app.lib.fs_utils import get_safe_file_name
 
 
 class TestFsUtils(unittest.TestCase):

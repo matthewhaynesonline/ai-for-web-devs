@@ -2,7 +2,7 @@ services:
   web:
     container_name: chat_web
     build: app
-    command: "python app.py"
+    command: "python -m app"
     restart: unless-stopped
     env_file:
       - ./.env
@@ -35,7 +35,7 @@ services:
 
   db:
     container_name: chat_db
-    image: postgres:16.2-alpine
+    image: postgres:17.2-alpine
     restart: unless-stopped
     environment:
       - POSTGRES_DB
@@ -55,7 +55,7 @@ services:
     container_name: chat_inference
     image: ghcr.io/ggerganov/llama.cpp:server
     # image: ghcr.io/ggerganov/llama.cpp:server-cuda
-    command: "-m models/${INFERENCE_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_PORT} --gpu-layers ${INFERENCE_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_CONTEXT_SIZE} --flash-attn --mlock"
+    command: "-m /models/${INFERENCE_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_PORT} --n-gpu-layers ${INFERENCE_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_CONTEXT_SIZE} --flash-attn --mlock"
     restart: unless-stopped
     ports:
       - "${INFERENCE_PORT}:${INFERENCE_PORT}"
@@ -73,7 +73,7 @@ services:
     container_name: chat_inference_small
     image: ghcr.io/ggerganov/llama.cpp:server
     # image: ghcr.io/ggerganov/llama.cpp:server-cuda
-    command: "-m models/${INFERENCE_SMALL_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_SMALL_PORT} --gpu-layers ${INFERENCE_SMALL_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_SMALL_CONTEXT_SIZE} --flash-attn --mlock"
+    command: "-m /models/${INFERENCE_SMALL_MODEL_FILE} --host 0.0.0.0 --port ${INFERENCE_SMALL_PORT} --n-gpu-layers ${INFERENCE_SMALL_NUM_GPU_LAYERS} --ctx-size ${INFERENCE_SMALL_CONTEXT_SIZE} --flash-attn --mlock"
     restart: unless-stopped
     ports:
       - "${INFERENCE_SMALL_PORT}:${INFERENCE_SMALL_PORT}"

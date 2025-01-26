@@ -7,7 +7,7 @@ export enum BackendChatMessageRole {
 }
 
 interface BackendChatMessage {
-  body: string;
+  content: string;
   created_at: string;
   role: BackendChatMessageRole;
 }

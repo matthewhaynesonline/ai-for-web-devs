@@ -7,8 +7,8 @@ from typing import Dict, List, Tuple
 from langchain_core.documents import Document
 from opensearchpy import OpenSearch
 
-from services.data_loader import DataLoader
-from services.embedding_service import EmbeddingService
+from app.services.data_loader import DataLoader
+from app.services.embedding_service import EmbeddingService
 
 
 @dataclass

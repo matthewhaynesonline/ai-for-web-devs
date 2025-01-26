@@ -1,4 +1,4 @@
-FROM python:3.12.1-slim
+FROM python:3.12-slim
 
 ARG APP_USER=app_user
 ARG APP_DIR=/app
@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install git for git pip packages
+RUN apt-get update && apt-get install -y git && apt-get clean
 
 WORKDIR ${APP_DIR}
 

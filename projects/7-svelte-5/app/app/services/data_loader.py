@@ -7,7 +7,7 @@ from langchain_community.document_loaders import TextLoader
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from services.fs_utils import save_document_to_disk
+from app.lib.fs_utils import save_document_to_disk
 
 
 class DataLoader:
