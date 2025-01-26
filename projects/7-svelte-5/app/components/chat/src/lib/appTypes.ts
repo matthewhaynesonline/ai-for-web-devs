@@ -1,21 +1,46 @@
 // See models.py
 
+export enum GeneratedMediaType {
+  GeneratedMedia = "generated_media",
+  GeneratedImage = "generated_image",
+}
+
+export interface GeneratedMedia {
+  id: number;
+  type: GeneratedMediaType;
+  filename?: string;
+  prompt?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export enum BackendChatMessageRole {
   Assistant = "assistant",
   System = "system",
   User = "user",
 }
 
-interface BackendChatMessage {
-  content: string;
-  created_at: string;
-  role: BackendChatMessageRole;
+export enum BackendChatMessageState {
+  Pending = "pending",
+  Ready = "ready",
 }
 
-export interface InitialChatState {
+export interface BackendChatMessage {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  role: BackendChatMessageRole;
+  state?: BackendChatMessageState;
+  generated_media?: GeneratedMedia | null;
+}
+
+export interface BackendChatState {
   id: number;
   title: string;
   chat_messages?: BackendChatMessage[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export enum ChatMessageAuthor {
@@ -24,10 +49,14 @@ export enum ChatMessageAuthor {
 }
 
 export interface ChatMessage {
-  body: string;
+  id?: number;
+  title?: string;
+  content: string;
   author: string;
-  date: number | null;
+  date: Date | number | null;
   isUserMessage: boolean;
+  state?: BackendChatMessageState;
+  generatedMedia?: GeneratedMedia | null;
 }
 
 export enum ToastState {
@@ -38,7 +67,7 @@ export enum ToastState {
 
 export interface ToastMessage {
   title: string;
-  body: string;
+  content: string;
   state: ToastState;
 }
 

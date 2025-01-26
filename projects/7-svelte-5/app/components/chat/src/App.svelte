@@ -8,7 +8,7 @@
   } from "./lib/appTypes";
 
   import type {
-    InitialChatState,
+    BackendChatState,
     ChatMessage,
     ToastMessage,
     Source,
@@ -20,6 +20,7 @@
     doRequest,
     getFileNameWithoutExtensionAndTimeStamp,
     scrollToBottom,
+    handleOnBeforeUnload,
   } from "./lib/utils";
 
   import AddDocumentForm from "./lib/AddDocumentForm.svelte";
@@ -29,17 +30,12 @@
   import Toast from "./lib/Toast.svelte";
 
   interface Props {
-    initialChatState: InitialChatState;
+    initialChatState: BackendChatState;
   }
 
   let { initialChatState }: Props = $props();
 
   let aborter = new AbortController();
-
-  let isLoading = $state(false);
-  let showAddDocumentForm = $state(false);
-  let showMessageSourceModal = $state(false);
-  let showToast = $state(false);
 
   const inputCommands: InputCommand[] = [
     {
@@ -50,6 +46,11 @@
     },
   ];
 
+  let isLoading = $state(false);
+  let showAddDocumentForm = $state(false);
+  let showMessageSourceModal = $state(false);
+  let showToast = $state(false);
+
   const defaultPrompt = "";
   let currentPrompt = $state(defaultPrompt);
 
@@ -58,7 +59,7 @@
 
   const userAuthor = ChatMessageAuthor.User;
   const defaultChatMessage: ChatMessage = {
-    body: "",
+    content: "",
     author: ChatMessageAuthor.System,
     date: null,
     isUserMessage: false,
@@ -66,7 +67,7 @@
 
   const defaultToastMessage: ToastMessage = {
     title: "",
-    body: "",
+    content: "",
     state: ToastState.Danger,
   };
 
@@ -79,14 +80,13 @@
 
   let currentSource: Source = $state(structuredClone(defaultSource));
 
-  onMount(() => {
-    setChatMessageFromInitialState();
-  });
-
+  /**
+   * Utils
+   */
   function setChatMessageFromInitialState(): void {
     initialChatState?.chat_messages.forEach((message) => {
       let newMessage = structuredClone(defaultChatMessage);
-      newMessage.body = message.content;
+      newMessage.content = message.content;
       newMessage.date = new Date(message.created_at);
 
       if (message.role === BackendChatMessageRole.User) {
@@ -104,43 +104,16 @@
     scrollToBottom();
   }
 
-  async function onClearChat(event: Event): Promise<void> {
-    if (!window.confirm("Are you sure you want to clear the chat?")) {
-      return;
-    }
+  /**
+   * Lifecycle
+   */
+  onMount(() => {
+    setChatMessageFromInitialState();
+  });
 
-    const endpointUrl = `/chats/${initialChatState.id}/chat-messages`;
-    await doRequest(endpointUrl, {}, aborter, "DELETE");
-
-    flashToast("Success!", "Chat cleared!", ToastState.Info);
-
-    currentPrompt = defaultPrompt;
-    messages = structuredClone(defaultMessages);
-
-    refreshMessages();
-  }
-
-  async function flashToast(
-    title = "There was an error.",
-    body = "Please try again later.",
-    state: ToastState = ToastState.Danger,
-  ): Promise<void> {
-    toastMessage.title = title;
-    toastMessage.body = body;
-    toastMessage.state = state;
-
-    showToast = true;
-
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    showToast = false;
-  }
-
-  function onToastClose(): void {
-    showToast = false;
-    toastMessage = structuredClone(defaultToastMessage);
-  }
-
+  /**
+   * Chat
+   */
   async function onChatFormSubmit(newPrompt: string): Promise<void> {
     currentPrompt = newPrompt;
 
@@ -149,7 +122,7 @@
     aborter = new AbortController();
 
     messages.push({
-      body: currentPrompt,
+      content: currentPrompt,
       author: userAuthor,
       date: Date.now(),
       isUserMessage: true,
@@ -215,9 +188,9 @@
           const text = new TextDecoder().decode(value);
 
           if (firstTokenLoadedAlreadyLoaded) {
-            messages[messages.length - 1].body += text;
+            messages[messages.length - 1].content += text;
           } else {
-            messages[messages.length - 1].body = text;
+            messages[messages.length - 1].content = text;
             messages[messages.length - 1].date = Date.now();
 
             firstTokenLoadedAlreadyLoaded = true;
@@ -233,11 +206,30 @@
 
   async function addMessageFromResponse(response) {
     const responseData = await response.json();
-    messages[messages.length - 1].body = responseData.output;
+    messages[messages.length - 1].content = responseData.output;
     messages[messages.length - 1].date = Date.now();
     refreshMessages();
   }
 
+  async function onClearChat(event: Event): Promise<void> {
+    if (!window.confirm("Are you sure you want to clear the chat?")) {
+      return;
+    }
+
+    const endpointUrl = `/chats/${initialChatState.id}/chat-messages`;
+    await doRequest(endpointUrl, {}, aborter, "DELETE");
+
+    flashToast("Success!", "Chat cleared!", ToastState.Info);
+
+    currentPrompt = defaultPrompt;
+    messages = structuredClone(defaultMessages);
+
+    refreshMessages();
+  }
+
+  /**
+   * Add Doc
+   */
   function onChatAddDocumentClick(): void {
     showAddDocumentForm = true;
   }
@@ -266,6 +258,9 @@
     showAddDocumentForm = false;
   }
 
+  /**
+   * Message Source
+   */
   async function onSourceClick(sourceName: string): Promise<void> {
     isLoading = true;
 
@@ -297,7 +292,33 @@
     showMessageSourceModal = false;
     currentSource = structuredClone(defaultSource);
   }
+
+  /**
+   * Toast
+   */
+  async function flashToast(
+    title = "There was an error.",
+    content = "Please try again later.",
+    state: ToastState = ToastState.Danger,
+  ): Promise<void> {
+    toastMessage.title = title;
+    toastMessage.content = content;
+    toastMessage.state = state;
+
+    showToast = true;
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    showToast = false;
+  }
+
+  function onToastClose(): void {
+    showToast = false;
+    toastMessage = structuredClone(defaultToastMessage);
+  }
 </script>
+
+<svelte:window onbeforeunload={(event) => handleOnBeforeUnload(event, isLoading)} />
 
 <main class="pb-5">
   {#if showToast}
@@ -333,7 +354,7 @@
       <li>
         {#if message.isUserMessage}
           <ChatMessageComponent {message} />
-        {:else if message.body}
+        {:else if message.content}
           <ChatMessageComponent {message} {onSourceClick} />
         {:else}
           <ChatMessageComponent

@@ -88,3 +88,10 @@ export function throttle(func, limit: number) {
     }
   };
 }
+
+export function handleOnBeforeUnload(event: Event, isLoading: boolean): void {
+  // Warn user before closing tabs / navigating away if still loading.
+  if (isLoading) {
+    event.preventDefault();
+  }
+}

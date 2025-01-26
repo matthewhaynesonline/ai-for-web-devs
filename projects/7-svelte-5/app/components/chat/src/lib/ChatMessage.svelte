@@ -34,7 +34,7 @@
     messageCssClass = "message--app";
   }
 
-  let rawMessage = $derived(message.body.split("SOURCES:")[0]);
+  let rawMessage = $derived(message.content.split("SOURCES:")[0]);
   let processedMessageBody = $derived.by(() => {
     let processedMessageBody = "";
 
@@ -46,7 +46,7 @@
     return processedMessageBody;
   });
 
-  let rawSources = $derived(message.body.split("SOURCES:")[1]);
+  let rawSources = $derived(message.content.split("SOURCES:")[1]);
   let sources = $derived.by(() => {
     let sources = [];
 

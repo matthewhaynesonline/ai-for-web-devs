@@ -17,7 +17,7 @@
   </div>
 
   <div class="toast-body">
-    {toastMessage.body}
+    {toastMessage.content}
   </div>
 </div>
 

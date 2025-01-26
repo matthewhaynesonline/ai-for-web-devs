@@ -7,7 +7,7 @@ from werkzeug.exceptions import HTTPException
 
 from app.config import Config
 from app.database import db_init_app, db
-from app.models import User, Chat, ChatMessageRole
+from app.models import User, Chat
 
 from app.services.app_logger import AppLogger
 from app.services.chat_manager import ChatManager

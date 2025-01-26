@@ -7,7 +7,7 @@
   let { onSubmit, onClose }: Props = $props();
 
   let title = $state("");
-  let body = $state("");
+  let content = $state("");
 </script>
 
 <div class="modal d-inline-block">
@@ -17,7 +17,7 @@
       event.preventDefault();
       onSubmit({
         title: title,
-        body: body,
+        content: content,
       });
     }}
   >
@@ -51,10 +51,10 @@
           <textarea
             class="form-control"
             id="newDocumentBody"
-            placeholder="Enter body content, such as 'Cloud computing refers to...'"
+            placeholder="Enter content content, such as 'Cloud computing refers to...'"
             required
             rows="4"
-            bind:value={body}
+            bind:value={content}
           ></textarea>
         </div>
       </div>
