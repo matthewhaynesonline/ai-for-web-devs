@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
 
-  export let sources = [];
+  let { sources = [] } = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -14,7 +14,7 @@
 <ul>
   {#each sources as source}
     <li class="list-inline-item">
-      <button type="button" class="btn btn-link py-0" on:click={onSourceClick(source)}>
+      <button type="button" class="btn btn-link py-0" onclick={onSourceClick(source)}>
         {source}
       </button>
     </li>

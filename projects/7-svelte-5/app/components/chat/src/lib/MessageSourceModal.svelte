@@ -2,7 +2,11 @@
   import { createEventDispatcher } from "svelte";
   import type { Source } from "./appTypes";
 
-  export let source: Source;
+  interface Props {
+    source: Source;
+  }
+
+  let { source }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -16,7 +20,7 @@
     <div class="modal-content">
       <div class="modal-header text-bg-dark">
         <h5 class="modal-title">Source</h5>
-        <button type="button" class="btn btn-dark fw-bolder" on:click={onClose}>
+        <button type="button" class="btn btn-dark fw-bolder" onclick={onClose}>
           ✕
         </button>
       </div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { createEventDispatcher } from "svelte";
   import showdown from "showdown";
 
@@ -7,9 +9,13 @@
   import ChatMessageSources from "./ChatMessageSources.svelte";
   import LoadingDots from "./LoadingDots.svelte";
 
-  export let message: ChatMessage;
-  export let isUserMessageOverwrite: boolean | null = null;
-  export let isLoading = false;
+  interface Props {
+    message: ChatMessage;
+    isUserMessageOverwrite?: boolean | null;
+    isLoading?: boolean;
+  }
+
+  let { message = $bindable(), isUserMessageOverwrite = null, isLoading = false }: Props = $props();
 
   if (isUserMessageOverwrite) {
     message.isUserMessage = isUserMessageOverwrite;
@@ -18,27 +24,29 @@
   const dispatch = createEventDispatcher();
   const showDownConverter = new showdown.Converter();
 
-  let alertCssClass = "alert-primary";
-  let messageCssClass = "message--user";
+  let alertCssClass = $state("alert-primary");
+  let messageCssClass = $state("message--user");
 
   if (!message.isUserMessage) {
     alertCssClass = "alert-light";
     messageCssClass = "message--app";
   }
 
-  let processedMessageBody = "";
-  let sources: Array<string> = [];
+  let processedMessageBody = $state("");
+  let sources: Array<string> = $state([]);
 
-  $: if (message.body) {
-    const [rawMessage, rawSources] = message.body.split("SOURCES:");
+  run(() => {
+    if (message.body) {
+      const [rawMessage, rawSources] = message.body.split("SOURCES:");
 
-    message.body = rawMessage.replace("Response:", "");
-    processedMessageBody = showDownConverter.makeHtml(message.body);
+      message.body = rawMessage.replace("Response:", "");
+      processedMessageBody = showDownConverter.makeHtml(message.body);
 
-    if (rawSources) {
-      sources = rawSources.split(",");
+      if (rawSources) {
+        sources = rawSources.split(",");
+      }
     }
-  }
+  });
 
   function onSourceClick(event: Event): void {
     dispatch("chatMessageOnSourceClick", event.detail);

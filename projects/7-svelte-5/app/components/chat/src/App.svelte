@@ -28,14 +28,18 @@
   import MessageSourceModal from "./lib/MessageSourceModal.svelte";
   import Toast from "./lib/Toast.svelte";
 
-  export let initialChatState: InitialChatState;
+  interface Props {
+    initialChatState: InitialChatState;
+  }
+
+  let { initialChatState }: Props = $props();
 
   let aborter = new AbortController();
 
-  let isLoading = false;
-  let showAddDocumentForm = false;
-  let showMessageSourceModal = false;
-  let showToast = false;
+  let isLoading = $state(false);
+  let showAddDocumentForm = $state(false);
+  let showMessageSourceModal = $state(false);
+  let showToast = $state(false);
 
   const inputCommands: InputCommand[] = [
     {
@@ -47,10 +51,10 @@
   ];
 
   const defaultPrompt = "";
-  let currentPrompt = defaultPrompt;
+  let currentPrompt = $state(defaultPrompt);
 
   const defaultMessages: Array<ChatMessage> = [];
-  let messages = structuredClone(defaultMessages);
+  let messages = $state(structuredClone(defaultMessages));
 
   const userAuthor = ChatMessageAuthor.User;
   const defaultChatMessage: ChatMessage = {
@@ -66,14 +70,14 @@
     state: ToastState.Danger,
   };
 
-  let toastMessage: ToastMessage = structuredClone(defaultToastMessage);
+  let toastMessage: ToastMessage = $state(structuredClone(defaultToastMessage));
 
   let defaultSource: Source = {
     source: "",
     page_content: "",
   };
 
-  let currentSource: Source = structuredClone(defaultSource);
+  let currentSource: Source = $state(structuredClone(defaultSource));
 
   onMount(() => {
     setChatMessageFromInitialState();
@@ -326,7 +330,7 @@
     <button
       type="button"
       class="btn btn-sm btn-outline-danger float-end"
-      on:click={onClearChat}
+      onclick={onClearChat}
     >
       Clear Chat
     </button>

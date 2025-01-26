@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
   import { createEventDispatcher } from "svelte";
 
-  let title = "";
-  let body = "";
+  let title = $state("");
+  let body = $state("");
 
   const dispatch = createEventDispatcher();
 
@@ -19,11 +21,11 @@
 </script>
 
 <div class="modal d-inline-block">
-  <form class="modal-dialog modal-dialog-centered" on:submit|preventDefault={onSubmit}>
+  <form class="modal-dialog modal-dialog-centered" onsubmit={preventDefault(onSubmit)}>
     <div class="modal-content">
       <div class="modal-header text-bg-dark">
         <h5 class="modal-title">Add a document to the model</h5>
-        <button type="button" class="btn btn-dark fw-bolder" on:click={onClose}>
+        <button type="button" class="btn btn-dark fw-bolder" onclick={onClose}>
           ✕
         </button>
       </div>
@@ -54,14 +56,14 @@
             required
             rows="4"
             bind:value={body}
-          />
+></textarea>
         </div>
       </div>
 
       <div class="modal-footer text-bg-light">
         <button type="submit" class="btn btn-success">Save Document</button>
 
-        <button type="button" class="btn btn-secondary" on:click={onClose}>
+        <button type="button" class="btn btn-secondary" onclick={onClose}>
           Cancel
         </button>
       </div>

@@ -1,16 +1,22 @@
 <script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
   import { createEventDispatcher } from "svelte";
 
   import type { InputCommand } from "./appTypes";
 
   import { checkIfStringIsCommand, debounce } from "./utils";
 
-  export let inputCommands: Array<InputCommand> = [];
-  export let currentPrompt = "";
-  export let isLoading = false;
+  interface Props {
+    inputCommands?: Array<InputCommand>;
+    currentPrompt?: string;
+    isLoading?: boolean;
+  }
 
-  let showCommands = false;
-  let inputReference = null;
+  let { inputCommands = [], currentPrompt = $bindable(""), isLoading = false }: Props = $props();
+
+  let showCommands = $state(false);
+  let inputReference = $state(null);
 
   const dispatch = createEventDispatcher();
 
@@ -64,7 +70,7 @@
   }
 </script>
 
-<form class="card" on:submit|preventDefault={onSubmit}>
+<form class="card" onsubmit={preventDefault(onSubmit)}>
   <div class="card-body">
     <div class="input-group">
       <input
@@ -76,8 +82,8 @@
         disabled={isLoading}
         bind:this={inputReference}
         bind:value={currentPrompt}
-        on:keydown={onKeydown}
-        on:input={onInputDebounced}
+        onkeydown={onKeydown}
+        oninput={onInputDebounced}
       />
 
       {#if showCommands}
@@ -85,7 +91,7 @@
           {#each inputCommands as command}
             <li
               class="list-group-item bg-dark text-white"
-              on:click={() => selectCommand(command)}
+              onclick={() => selectCommand(command)}
             >
               <strong>{command.label}</strong>
               <small>{@html command.description}</small>
@@ -109,7 +115,7 @@
         <button
           type="button"
           class="btn btn-outline-dark"
-          on:click={onAddDocumentClick}
+          onclick={onAddDocumentClick}
         >
           Add document
         </button>
