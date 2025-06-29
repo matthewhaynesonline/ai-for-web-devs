@@ -1,0 +1,15 @@
+{% extends "layout.html.jinja" %}
+{% block title %}{{ title }}{% endblock %}
+{% block head %}
+<style></style>
+{% endblock %}
+
+{% block body %}
+<h2>{{ title }}</h2>
+
+{% match content %}
+{% when Some(content) %}
+<p>{{ content }}</p>
+{% when None %}
+{% endmatch %}
+{% endblock %}

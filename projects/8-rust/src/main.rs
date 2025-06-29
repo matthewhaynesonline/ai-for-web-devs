@@ -2,9 +2,18 @@ use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use clap::Parser;
 use tokio::signal;
+use tower_http::services::ServeDir;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+
+mod controllers;
+use controllers::{
+    chat::index,
+    errors::{handle_404, handle_errors},
+};
+
+mod templates;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -20,7 +29,7 @@ struct Args {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(root),
+    paths(controllers::chat::index),
     tags(
         (name = "hello", description = "Hello world endpoints")
     ),
@@ -34,22 +43,24 @@ struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = Args::parse();
-
     init_logging();
 
+    let args = Args::parse();
     let api_docs = ApiDoc::openapi();
 
     let app = Router::new()
-        .route("/", get(root))
-        .merge(SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", api_docs));
+        .route("/", get(index))
+        .merge(SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", api_docs))
+        .nest_service("/static", ServeDir::new("static"))
+        .layer(axum::middleware::from_fn(handle_errors))
+        .fallback(handle_404);
 
-    let addr = format!("{}:{}", args.ip, args.port);
-    let listener = tokio::net::TcpListener::bind(&addr)
+    let address = format!("{}:{}", args.ip, args.port);
+    let listener = tokio::net::TcpListener::bind(&address)
         .await
-        .context(format!("Could not bind TCP Listener on {addr}"))?;
+        .context(format!("Could not bind TCP Listener on {address}"))?;
 
-    info!("Starting HTTP server: {}", &addr);
+    info!("Starting HTTP server: {address}");
     info!("Ready");
 
     axum::serve(listener, app)
@@ -91,16 +102,4 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("signal received, starting graceful shutdown");
-}
-
-#[utoipa::path(
-    get,
-    path = "/",
-    tag = "hello",
-    responses(
-        (status = 200, description = "Successful response with greeting message", body = String)
-    )
-)]
-async fn root() -> &'static str {
-    "Hello, World!"
 }
