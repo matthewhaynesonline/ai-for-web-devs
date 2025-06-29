@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use clap::Parser;
+use tokio::signal;
 use tracing::info;
 
 #[derive(Parser)]
@@ -31,15 +32,45 @@ async fn main() -> Result<()> {
     info!("Starting HTTP server: {}", &addr);
     info!("Ready");
 
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     Ok(())
 }
 
+/// Init logging
 fn init_logging() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
+}
+
+/// Shutdown signal handler
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("signal received, starting graceful shutdown");
 }
 
 async fn root() -> &'static str {
