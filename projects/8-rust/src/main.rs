@@ -3,6 +3,8 @@ use axum::{Router, routing::get};
 use clap::Parser;
 use tokio::signal;
 use tracing::info;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -16,13 +18,31 @@ struct Args {
     port: u16,
 }
 
+#[derive(OpenApi)]
+#[openapi(
+    paths(root),
+    tags(
+        (name = "hello", description = "Hello world endpoints")
+    ),
+    info(
+        title = "Hello World API",
+        version = "1.0.0",
+        description = "A simple API that responds with a greeting"
+    )
+)]
+struct ApiDoc;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
     init_logging();
 
-    let app = Router::new().route("/", get(root));
+    let api_docs = ApiDoc::openapi();
+
+    let app = Router::new()
+        .route("/", get(root))
+        .merge(SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", api_docs));
 
     let addr = format!("{}:{}", args.ip, args.port);
     let listener = tokio::net::TcpListener::bind(&addr)
@@ -73,6 +93,14 @@ async fn shutdown_signal() {
     tracing::info!("signal received, starting graceful shutdown");
 }
 
+#[utoipa::path(
+    get,
+    path = "/",
+    tag = "hello",
+    responses(
+        (status = 200, description = "Successful response with greeting message", body = String)
+    )
+)]
 async fn root() -> &'static str {
     "Hello, World!"
 }
