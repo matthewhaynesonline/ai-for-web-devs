@@ -1,11 +1,15 @@
 use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use clap::Parser;
+use migration::{Migrator, MigratorTrait};
+use sea_orm::{Database, DatabaseConnection};
 use tokio::signal;
 use tower_http::services::ServeDir;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+
+use entities::{chat::ChatSchema, chat_message::ChatMessageSchema, user::UserSchema};
 
 mod controllers;
 use controllers::{
@@ -25,11 +29,18 @@ struct Args {
     /// Port to serve on.
     #[arg(short, long, default_value_t = 3000)]
     port: u16,
+
+    // Need mode=rwc
+    // https://github.com/launchbadge/sqlx/issues/3099#issuecomment-2556452267
+    /// Database URL connection string
+    #[arg(long, default_value_t = String::from("sqlite://app.db?mode=rwc"))]
+    datebase_url: String,
 }
 
 #[derive(OpenApi)]
 #[openapi(
     paths(controllers::chat::index),
+    components(schemas(ChatSchema, UserSchema, ChatMessageSchema)),
     tags(
         (name = "hello", description = "Hello world endpoints")
     ),
@@ -46,6 +57,7 @@ async fn main() -> Result<()> {
     init_logging();
 
     let args = Args::parse();
+    let db = open_db_connection(&args.datebase_url).await;
     let api_docs = ApiDoc::openapi();
 
     let app = Router::new()
@@ -70,14 +82,12 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-/// Init logging
 fn init_logging() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 }
 
-/// Shutdown signal handler
 async fn shutdown_signal() {
     let ctrl_c = async {
         signal::ctrl_c()
@@ -102,4 +112,14 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("signal received, starting graceful shutdown");
+}
+
+async fn open_db_connection(db_url: &String) -> DatabaseConnection {
+    let db = Database::connect(db_url)
+        .await
+        .expect("Database connection failed");
+
+    Migrator::up(&db, None).await.unwrap();
+
+    db
 }

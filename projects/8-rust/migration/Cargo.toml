@@ -1,0 +1,16 @@
+[package]
+name = "migration"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "migration"
+path = "src/lib.rs"
+
+[dependencies]
+sea-orm-migration = { workspace = true }
+tokio = { workspace = true }
+
+# Local deps
+entities = { path = "../entities" }
