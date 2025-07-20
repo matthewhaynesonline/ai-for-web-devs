@@ -9,6 +9,7 @@ use axum::{
 pub(crate) struct PageTemplate {
     pub(crate) title: String,
     pub(crate) content: Option<String>,
+    pub(crate) username: Option<String>,
 }
 
 // https://github.com/tokio-rs/axum/blob/main/examples/templates/src/main.rs

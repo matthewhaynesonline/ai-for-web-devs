@@ -1,20 +1,39 @@
-use axum::response::IntoResponse;
+use axum::{extract::Path, response::Redirect};
+use uuid::Uuid;
 
-use crate::templates::{HtmlTemplateRenderer, PageTemplate};
+use entities::errors::AppError;
+
+use crate::{
+    ExtractedAppState,
+    templates::{HtmlTemplateRenderer, PageTemplate},
+};
+
+pub(crate) async fn index(state: ExtractedAppState) -> Result<Redirect, AppError> {
+    let chat = state.current_user.get_default_chat(&state.db).await?;
+
+    Ok(Redirect::temporary(&format!("/chats/{}", chat.uuid)))
+}
 
 #[utoipa::path(
     get,
-    path = "/",
-    tag = "hello",
+    path = "/chat/{chat_uuid}",
+    params(
+        ("chat_uuid" = String, Path, description = "UUID of the chat.")
+    ),
+    tag = "Chat",
     responses(
-        (status = 200, description = "Successful response with greeting message", body = String, content_type = "text/html; charset=utf-8")
+        (status = 200, description = "Chat index", body = String, content_type = "text/html; charset=utf-8")
     )
 )]
-pub(crate) async fn index() -> impl IntoResponse {
+pub(crate) async fn chat_show(
+    state: ExtractedAppState,
+    Path(_chat_uuid): Path<Uuid>,
+) -> Result<HtmlTemplateRenderer<PageTemplate>, AppError> {
     let template = PageTemplate {
-        title: String::from("Index"),
-        content: Some(String::from("Hello world")),
+        title: String::from("Chat"),
+        content: Some(String::from("Hello chat")),
+        username: Some(state.current_user.username.clone()),
     };
 
-    HtmlTemplateRenderer(template)
+    Ok(HtmlTemplateRenderer(template))
 }

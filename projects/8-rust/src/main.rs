@@ -1,20 +1,30 @@
-use anyhow::{Context, Result};
-use axum::{Router, routing::get};
+use std::sync::Arc;
+
+use anyhow::Result;
+use axum::{Router, extract::State, routing::get};
 use clap::Parser;
-use migration::{Migrator, MigratorTrait};
-use sea_orm::{Database, DatabaseConnection};
-use tokio::signal;
-use tower_http::services::ServeDir;
-use tracing::info;
+use sea_orm::DatabaseConnection;
+use tower_http::{
+    services::ServeDir,
+    trace::{self, TraceLayer},
+};
+use tracing::{Level, info};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use entities::{chat::ChatSchema, chat_message::ChatMessageSchema, user::UserSchema};
+use entities::{
+    chat::ChatSchema,
+    chat_message::ChatMessageSchema,
+    user::{self, Model as UserModel, UserSchema},
+};
+
+mod app;
+use app::{init_listener, init_logging, open_db_connection, shutdown_signal};
 
 mod controllers;
 use controllers::{
-    chat::index,
-    errors::{handle_404, handle_errors},
+    chat::{chat_show, index},
+    errors::{handle_errors, handle_fallback},
 };
 
 mod templates;
@@ -39,18 +49,20 @@ struct Args {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(controllers::chat::index),
+    paths(controllers::chat::chat_show),
     components(schemas(ChatSchema, UserSchema, ChatMessageSchema)),
-    tags(
-        (name = "hello", description = "Hello world endpoints")
-    ),
-    info(
-        title = "Hello World API",
-        version = "1.0.0",
-        description = "A simple API that responds with a greeting"
-    )
+    info(title = "Hello Rust", version = "1.0.0", description = "A simple app")
 )]
 struct ApiDoc;
+
+#[derive(Clone)]
+pub(crate) struct AppState {
+    pub(crate) db: DatabaseConnection,
+    pub(crate) current_user: user::Model,
+}
+
+pub(crate) type SharedAppState = Arc<AppState>;
+pub(crate) type ExtractedAppState = State<SharedAppState>;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -58,68 +70,46 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
     let db = open_db_connection(&args.datebase_url).await;
-    let api_docs = ApiDoc::openapi();
-
-    let app = Router::new()
-        .route("/", get(index))
-        .merge(SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", api_docs))
-        .nest_service("/static", ServeDir::new("static"))
-        .layer(axum::middleware::from_fn(handle_errors))
-        .fallback(handle_404);
-
-    let address = format!("{}:{}", args.ip, args.port);
-    let listener = tokio::net::TcpListener::bind(&address)
-        .await
-        .context(format!("Could not bind TCP Listener on {address}"))?;
+    let router = init_router(db).await;
+    let address = format!("{}:{}", &args.ip, args.port);
+    let listener = init_listener(&address).await?;
 
     info!("Starting HTTP server: {address}");
-    info!("Ready");
-
-    axum::serve(listener, app)
+    axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
 
     Ok(())
 }
 
-fn init_logging() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-}
-
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-    }
-
-    tracing::info!("signal received, starting graceful shutdown");
-}
-
-async fn open_db_connection(db_url: &String) -> DatabaseConnection {
-    let db = Database::connect(db_url)
+async fn init_router(db: DatabaseConnection) -> Router {
+    let current_user = UserModel::find_first(&db)
         .await
-        .expect("Database connection failed");
+        .expect("Couldn't load user!");
 
-    Migrator::up(&db, None).await.unwrap();
+    let state = Arc::new(AppState { db, current_user });
 
-    db
+    let api_docs = ApiDoc::openapi();
+
+    Router::new()
+        .route("/", get(index))
+        .nest(
+            "/chats",
+            Router::new()
+                .route("/", get(index))
+                .route("/{uuid}", get(chat_show)),
+        )
+        .merge(SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", api_docs))
+        .nest_service("/static", ServeDir::new("static"))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            handle_errors,
+        ))
+        .fallback(handle_fallback)
+        .with_state(state)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        )
 }

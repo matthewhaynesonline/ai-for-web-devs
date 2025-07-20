@@ -23,6 +23,13 @@
       <a class="navbar-brand mb-0 h1" href="/">
         MattGPT
       </a>
+
+
+      <span class="navbar-text">
+        {% if let Some(username) = username %}
+        <span class="badge text-bg-light ms-2">{{ username }}</span>
+        {% endif %}
+      </span>
     </div>
   </nav>
 
