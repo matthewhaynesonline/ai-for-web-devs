@@ -1,0 +1,3 @@
+{
+  "rust-analyzer.linkedProjects": ["projects/8-rust/Cargo.toml"]
+}

@@ -1,0 +1,20 @@
+[package]
+name = "entities"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "entities"
+path = "src/lib.rs"
+
+[dependencies]
+axum = { workspace = true }
+chrono = { workspace = true }
+sea-orm = { workspace = true }
+sea_orm_utils = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+utoipa = { workspace = true }
+uuid = { workspace = true }
